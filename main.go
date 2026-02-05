@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Hyperloop-UPV/NATSOS/pkg/adj"
 	"github.com/Hyperloop-UPV/NATSOS/pkg/config"
 )
 
@@ -20,5 +21,12 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	// get the ADJ branch from the configuration and print it
+	adjPath, err := adj.GetADJ(cfg.ADJBranch, cfg.ADJPath)
+	if err != nil {
+		log.Fatalf("Failed to get ADJ: %v", err)
+	}
+
+	fmt.Printf("ADJ path: %s\n", adjPath)
 	fmt.Printf("Configuration loaded successfully:\n%s\n", cfg.ADJBranch)
 }

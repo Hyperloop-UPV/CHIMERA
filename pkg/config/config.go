@@ -11,6 +11,7 @@ import (
 type Config struct {
 	// Application settings
 	ADJBranch string `json:"adj-branch"`
+	ADJPath   string `json:"adj-path"` // Path to the ADJ repository empty for download usingg git
 }
 
 // LoadConfig reads and parses a JSON configuration file.
