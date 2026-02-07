@@ -3,6 +3,7 @@ package network
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/Hyperloop-UPV/NATSOS/pkg/utils"
 )
@@ -60,4 +61,47 @@ func SetupExternalInterface(iface string, ip string) error {
 	}
 
 	return nil
+}
+
+// SetupDummyInterface creates a dummy network interface with the specified name and IP address, and brings it up.
+func SetupDummyInterface(name string, ip string) error {
+
+	dummyName := generateDummyInterfaceName(name)
+
+	// Check if the ip address is valid
+	if !IsValidIPv4(ip) {
+		return fmt.Errorf("invalid IP address: %s", ip)
+	}
+
+	dummyIP := AddSubnetMask(ip, 16)
+
+	if err := utils.RunCommand("ip", "link", "add", dummyName, "type", "dummy"); err != nil {
+		return err
+	}
+
+	if err := utils.RunCommand("ip", "addr", "add", dummyIP, "dev", dummyName); err != nil {
+		return err
+	}
+
+	if err := utils.RunCommand("ip", "link", "set", dummyName, "up"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func generateDummyInterfaceName(boardName string) string {
+
+	// remmove spaces and special characters from the board name and convert it to uppercase
+	boardName = strings.ReplaceAll(boardName, " ", "")
+	boardName = strings.ReplaceAll(boardName, "-", "")
+	boardName = strings.ReplaceAll(boardName, "_", "")
+	boardName = strings.ToUpper(boardName)
+
+	// maximum length of a network interface name is 15 characters, so we need to truncate the board name if it's too long
+	if len(boardName) > 10 {
+		boardName = boardName[:10]
+	}
+
+	return fmt.Sprintf("dummy%s", boardName)
 }
