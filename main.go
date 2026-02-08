@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	"github.com/Hyperloop-UPV/NATSOS/pkg/adj"
 	"github.com/Hyperloop-UPV/NATSOS/pkg/config"
@@ -69,7 +70,7 @@ func configureBoards(adj adj.ADJ, ctx context.Context) error {
 		}
 
 		// Create a plate runtime for the board
-		plateRuntime, err := plate.NewPlateRuntime(board, backendAddr)
+		plateRuntime, err := plate.NewPlateRuntime(board, backendAddr, 100*time.Millisecond) // Default period of 100ms for all packets, can be customized later
 		if err != nil {
 			return fmt.Errorf("failed to create plate runtime for board %s: %v", board.Name, err)
 		}

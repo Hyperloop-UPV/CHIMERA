@@ -55,19 +55,19 @@ func (gene *RandomGenerator) Generate(boardName string, pkt adj.Packet) ([]byte,
 			// For numbers, we consider the warning range as the most interesting to generate values around, so we use it as the main range. If it's not specified, we fallback to the full type range.
 			if len(meas.WarningRange) == 0 {
 
-				number = mapNumberToRange(gene.r.Float64(), meas.WarningRange, meas.Type)
+				number = MapNumberToRange(gene.r.Float64(), meas.WarningRange, meas.Type)
 
 			} else if meas.WarningRange[0] != nil && meas.WarningRange[1] != nil {
 				low := *meas.WarningRange[0] * 0.8
 				high := *meas.WarningRange[1] * 1.2
-				number = mapNumberToRange(gene.r.Float64(), []*float64{&low, &high}, meas.Type)
+				number = MapNumberToRange(gene.r.Float64(), []*float64{&low, &high}, meas.Type)
 
 			} else {
 				// Fallback if any bound is nil
-				number = mapNumberToRange(gene.r.Float64(), []*float64{}, meas.Type)
+				number = MapNumberToRange(gene.r.Float64(), []*float64{}, meas.Type)
 			}
 
-			err = writeNumberAsBytes(number, meas.Type, buf)
+			err = WriteNumberAsBytes(number, meas.Type, buf)
 			if err != nil {
 				return nil, err
 			}
@@ -79,7 +79,7 @@ func (gene *RandomGenerator) Generate(boardName string, pkt adj.Packet) ([]byte,
 }
 
 // mapNumberToRange maps a [0,1) random number to the given range for the specified type. If the range is empty, it maps to [0, max(type)]. Based on @JFisica's packet-sender.
-func mapNumberToRange(number float64, numberRange []*float64, numberType string) float64 {
+func MapNumberToRange(number float64, numberRange []*float64, numberType string) float64 {
 	if len(numberRange) == 0 {
 		return number * getTypeMaxValue(numberType)
 	} else {

@@ -8,7 +8,7 @@ import (
 )
 
 // writeNumberAsBytes encodes a float64 number into the specified type and writes it to the buffer. Copied from @JFisica's packet-sender.
-func writeNumberAsBytes(number float64, numberType string, buff *bytes.Buffer) error {
+func WriteNumberAsBytes(number float64, numberType string, buff *bytes.Buffer) error {
 	switch numberType {
 	// Unsigned integers
 	case "uint8":
