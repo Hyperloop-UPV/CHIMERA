@@ -33,6 +33,7 @@ func IsValidPort(port int) bool {
 	return port > 0 && port < 65536
 }
 
+// FormatIP formats an IP address and port into a string suitable for network operations, using the provided IP and port. If the port is invalid, it defaults to 0 (which means any available port).
 func FormatIP(ip string, port int) string {
 
 	if !IsValidPort(port) {

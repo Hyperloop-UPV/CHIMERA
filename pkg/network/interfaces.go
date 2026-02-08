@@ -50,14 +50,17 @@ func SetUpExternalInterface(iface string, ip string) error {
 		return fmt.Errorf("interface %s does not exist", iface)
 	}
 
+	// Remove any existing IP addresses from the interface
 	if err := utils.RunCommand("ip", "addr", "flush", "dev", iface); err != nil {
 		return err
 	}
 
+	// Add the new IP address to the interface
 	if err := utils.RunCommand("ip", "addr", "add", ip, "dev", iface); err != nil {
 		return err
 	}
 
+	// Bring the interface up
 	if err := utils.RunCommand("ip", "link", "set", iface, "up"); err != nil {
 		return err
 	}
@@ -79,14 +82,17 @@ func SetUpDummyInterface(name string, ip string) error {
 
 	dummyIP := AddSubnetMask(ip, 16)
 
+	// Create the dummy interface
 	if err := utils.RunCommand("ip", "link", "add", dummyName, "type", "dummy"); err != nil {
 		return err
 	}
 
+	// Add the IP address to the dummy interface
 	if err := utils.RunCommand("ip", "addr", "add", dummyIP, "dev", dummyName); err != nil {
 		return err
 	}
 
+	// Bring the dummy interface up
 	if err := utils.RunCommand("ip", "link", "set", dummyName, "up"); err != nil {
 		return err
 	}
@@ -102,10 +108,11 @@ func generateDummyInterfaceName(boardName string) string {
 	boardName = strings.ReplaceAll(boardName, "_", "")
 	boardName = strings.ToUpper(boardName)
 
-	// maximum length of a network interface name is 15 characters, so we need to truncate the board name if it's too long
+	// maximum length of a network interface name is 15 characters, so we need to truncate the board name if it's too long (we also need to reserve some characters for the "dummy" prefix, so we limit it to 10 characters)
 	if len(boardName) > 10 {
 		boardName = boardName[:10]
 	}
 
+	// Prexis the dummy prefix to the board name to create the dummy interface name
 	return fmt.Sprintf("dummy%s", boardName)
 }
