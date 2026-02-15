@@ -9,6 +9,7 @@ import (
 
 // writeNumberAsBytes encodes a float64 number into the specified type and writes it to the buffer. Copied from @JFisica's packet-sender.
 func WriteNumberAsBytes(number float64, numberType string, buff *bytes.Buffer) error {
+	// TODO: REMOVE
 	if number == 77.0 {
 		fmt.Print("llego 77")
 	}

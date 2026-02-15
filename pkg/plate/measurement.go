@@ -29,6 +29,7 @@ func (m *MeasurementState) WriteTo(w io.Writer) error {
 	if gen == nil {
 		return fmt.Errorf("generator not configured")
 	}
+	// TODO: REMOVE
 	if m.Measurement.Id == "output_dead_time_ns" {
 		fmt.Println("dfasf")
 	}
