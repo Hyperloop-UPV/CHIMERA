@@ -3,7 +3,8 @@
     "adj-path": "adj/",
     "network": {
         "interface": "eth0",
+        "ip": "192.168.0.1/16",
         "control-port": 2000
     },
-    "initial-period-ms": 500
+    "initial-period-ms": 100
 }

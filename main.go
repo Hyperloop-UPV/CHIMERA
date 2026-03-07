@@ -34,7 +34,7 @@ func main() {
 	}
 
 	// Set up the network configuration
-	if err := network.SetUpNetwork(cfg.Network.Interface, "192.168.0.1/16"); err != nil {
+	if err := network.SetUpNetwork(cfg.Network.Interface, cfg.Network.IP); err != nil {
 		log.Fatalf("Failed to setup network: %v", err)
 	}
 
