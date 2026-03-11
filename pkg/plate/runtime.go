@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Hyperloop-UPV/NATSOS/pkg/adj"
-	"github.com/Hyperloop-UPV/NATSOS/pkg/generator"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/generator"
 )
 
 // Define MeasurementID as an string

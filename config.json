@@ -1,6 +1,6 @@
 {
-    "adj-branch": "main",
-    "adj-path": "adj/",
+    "adj-branch": "software",
+    "adj-path": "",
     "network": {
         "interface": "eth0",
         "ip": "192.168.0.1/16",

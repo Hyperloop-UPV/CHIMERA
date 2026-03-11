@@ -5,7 +5,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/Hyperloop-UPV/NATSOS/pkg/utils"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/utils"
 )
 
 // External Interfaces

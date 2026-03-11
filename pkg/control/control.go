@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/Hyperloop-UPV/NATSOS/pkg/plate"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/plate"
 )
 
 // Control server is the auxiliar server that controls Chimera's emulator options

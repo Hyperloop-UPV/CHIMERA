@@ -3,7 +3,7 @@ package network
 import (
 	"log"
 
-	"github.com/Hyperloop-UPV/NATSOS/pkg/utils"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/utils"
 )
 
 // Set up Network Configuration
