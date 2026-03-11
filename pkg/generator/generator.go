@@ -3,7 +3,7 @@ package generator
 import (
 	"strings"
 
-	"github.com/Hyperloop-UPV/NATSOS/pkg/adj"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
 )
 
 // Generator is an interface that defines the method to generate a packet from a given board and packet definition.

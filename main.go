@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Hyperloop-UPV/NATSOS/pkg/adj"
-	"github.com/Hyperloop-UPV/NATSOS/pkg/config"
-	"github.com/Hyperloop-UPV/NATSOS/pkg/control"
-	"github.com/Hyperloop-UPV/NATSOS/pkg/network"
-	"github.com/Hyperloop-UPV/NATSOS/pkg/plate"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/config"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/control"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/network"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/plate"
 )
 
 func main() {

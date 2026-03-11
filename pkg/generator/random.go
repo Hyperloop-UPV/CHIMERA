@@ -8,7 +8,7 @@ import (
 	"fmt"
 	mrand "math/rand"
 
-	"github.com/Hyperloop-UPV/NATSOS/pkg/adj"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
 )
 
 // All functions of this file are an adaptation of @JFisica's packet sender

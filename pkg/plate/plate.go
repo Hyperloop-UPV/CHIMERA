@@ -5,8 +5,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/Hyperloop-UPV/NATSOS/pkg/adj"
-	"github.com/Hyperloop-UPV/NATSOS/pkg/network"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/network"
 )
 
 // NewPlateRuntime creates a new PlateRuntime for the given board and remote address. It resolves the local address based on the board's IP and creates a UDP connection to the backend. The local address is created as a dummy IP before, so it doesn't need to be actually assigned to an interface. The backend will receive the packets sent by the plate runtime and forward them to the decodification

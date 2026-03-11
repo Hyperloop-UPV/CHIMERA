@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/Hyperloop-UPV/NATSOS/pkg/adj"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
 )
 
 type FixedGenerator struct {
