@@ -33,10 +33,10 @@ func main() {
 		log.Fatalf("Failed to initialize ADJ: %v at %s", err, cfg.ADJPath)
 	}
 
-	// Set up the network configuration
-	if err := network.SetUpNetwork(cfg.Network.Interface, cfg.Network.IP); err != nil {
-		log.Fatalf("Failed to setup network: %v", err)
-	}
+	// // Set up the network configuration
+	// if err := network.SetUpNetwork(cfg.Network.Interface, cfg.Network.IP); err != nil {
+	// 	log.Fatalf("Failed to setup network: %v", err)
+	// }
 
 	// Define context for the plate runtimes
 	ctx, cancel := context.WithCancel(context.Background())
