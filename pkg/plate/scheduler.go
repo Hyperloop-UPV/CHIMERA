@@ -2,6 +2,7 @@ package plate
 
 import (
 	"context"
+	"log"
 	"net"
 	"time"
 )
@@ -34,6 +35,9 @@ func (pkt *PacketRuntime) Run(ctx context.Context, conn *net.UDPConn) {
 
 			payload, err := pkt.BuildPayload()
 			if err != nil {
+				// Log the error so that we can see why packet generation stopped.
+				// It is better to keep trying than stop sending entirely.
+				log.Printf("packet %d build error: %v", pkt.Packet.Id, err)
 				continue
 			}
 

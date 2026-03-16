@@ -5,7 +5,6 @@ package generator
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	mrand "math/rand"
 
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
@@ -20,9 +19,11 @@ type RandomEnumGenerator struct {
 
 func (g *RandomEnumGenerator) Generate(m adj.Measurement) ([]byte, error) {
 
-	// This should not occuer due to ADJ-Validator
+	// If the enum list is empty, fall back to 0 (to avoid stopping packet generation).
 	if len(m.EnumValues) == 0 {
-		return nil, fmt.Errorf("enum without values")
+		buf := new(bytes.Buffer)
+		_ = binary.Write(buf, binary.LittleEndian, uint8(0))
+		return buf.Bytes(), nil
 	}
 
 	//! IMPORTANT: enums are defined as uint8

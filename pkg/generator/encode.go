@@ -11,6 +11,10 @@ import (
 func WriteNumberAsBytes(number float64, numberType string, buff *bytes.Buffer) error {
 
 	switch numberType {
+	// Enums are always stored as uint8
+	case "enum":
+		return binary.Write(buff, binary.LittleEndian, uint8(number))
+
 	// Unsigned integers
 	case "uint8":
 		return binary.Write(buff, binary.LittleEndian, uint8(number))
@@ -52,6 +56,8 @@ func WriteNumberAsBytes(number float64, numberType string, buff *bytes.Buffer) e
 // getTypeMaxValue returns the maximum value for the given type, used for scaling random numbers when no range is specified. Copied from @JFisica's packet-sender.
 func getTypeMaxValue(numberType string) float64 {
 	switch numberType {
+	case "enum":
+		return math.MaxUint8
 	case "uint8":
 		return math.MaxUint8
 	case "uint16":
