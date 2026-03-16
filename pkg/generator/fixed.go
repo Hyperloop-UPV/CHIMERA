@@ -2,7 +2,6 @@ package generator
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
 )
@@ -16,8 +15,6 @@ type FixedGenerator struct {
 func (g *FixedGenerator) Generate(m adj.Measurement) ([]byte, error) {
 
 	buf := new(bytes.Buffer)
-	// TODO: REMOVE
-	fmt.Println(m.Name, g.Value)
 
 	err := WriteNumberAsBytes(g.Value, m.Type, buf)
 
