@@ -1,5 +1,5 @@
 {
-    "adj-branch": "software",
+    "adj-branch": "main",
     "adj-path": "",
     "network": {
         "interface": "eth0",
