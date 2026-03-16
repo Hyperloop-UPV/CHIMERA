@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
@@ -39,8 +42,13 @@ func main() {
 	// }
 
 	// Define context for the plate runtimes
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// Context that cancels on Ctrl+C or SIGTERM
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
 
 	// Configure the boards and create plate runtimes
 	boardGenerator, err := configureBoards(adj, *cfg, ctx)
@@ -50,9 +58,16 @@ func main() {
 
 	go control.StartControlServer(cfg.Network.ControlPort, boardGenerator)
 
-	// Block forever
-	select {}
+	// Wait until Ctrl+C
+	<-ctx.Done()
 
+	log.Println("Shutting down")
+
+	for _, plate := range boardGenerator {
+		plate.Delete()
+	}
+
+	log.Println("Shutdown complete")
 }
 
 func configureBoards(adj adj.ADJ, cfg config.Config, ctx context.Context) (plate.PlateGenerators, error) {
@@ -73,13 +88,7 @@ func configureBoards(adj adj.ADJ, cfg config.Config, ctx context.Context) (plate
 	// For each board
 	for _, board := range adj.Boards {
 
-		// Set up a dummy interface for the board
-		err := network.SetUpDummyInterface(board.Name, board.IP)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set up dummy interface for board %s: %v", board.Name, err)
-		}
-
-		// Create a plate runtime for the board
+		// Create a plate
 		plateRuntime, err := plate.NewPlateRuntime(board, backendAddr, period)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create plate runtime for board %s: %v", board.Name, err)

@@ -20,6 +20,8 @@ type PlateRuntime struct {
 	Board adj.Board
 	Conn  *net.UDPConn
 
+	BoardInterfaceName string
+
 	Packets      []*PacketRuntime
 	Measurements map[MeasurementID]*MeasurementState // Map of measurement name to its state, for easy access and updates
 }
