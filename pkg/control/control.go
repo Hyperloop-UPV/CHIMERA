@@ -92,7 +92,8 @@ func handleCommand(cmd Command, boards plate.PlateGenerators) string {
 			}
 		}
 
-		if showMeasurements {
+		// When only measurements are requested without packet context, build the global list.
+		if showMeasurements && !showPackets {
 			for _, m := range plate.Measurements {
 				measurements = append(measurements, fmt.Sprintf("%s (%s)", m.Measurement.Id, m.Measurement.Type))
 			}
@@ -123,14 +124,34 @@ func handleCommand(cmd Command, boards plate.PlateGenerators) string {
 				fmt.Fprintf(w, "%s\n", m)
 			}
 		} else {
-			// Both: for each packet list its measurements (sorted)
-			for _, p := range packets {
-				for i, m := range measurements {
+			// Both: for each packet list its own measurements (sorted)
+			for idx, p := range plate.Packets {
+				packetStr := fmt.Sprintf("%s (%s)", p.Packet.Name, p.Packet.Type)
+
+				// Collect measurements for this packet
+				var packetMeasurements []string
+				for _, m := range p.Measurements {
+					packetMeasurements = append(packetMeasurements, fmt.Sprintf("%s (%s)", m.Measurement.Id, m.Measurement.Type))
+				}
+
+				// Sort measurements for this packet (human-friendly ordering)
+				sort.Strings(packetMeasurements)
+
+				if len(packetMeasurements) == 0 {
+					fmt.Fprintf(w, "%s\n", packetStr)
+					continue
+				}
+
+				for i, m := range packetMeasurements {
 					if i == 0 {
-						fmt.Fprintf(w, "%s\t%s\n", p, m)
+						fmt.Fprintf(w, "%s\t%s\n", packetStr, m)
 					} else {
 						fmt.Fprintf(w, "\t%s\n", m)
 					}
+				}
+				// Keep order consistent with packets list
+				if idx < len(packets)-1 {
+					// no-op (keeps packet order stable)
 				}
 			}
 		}
