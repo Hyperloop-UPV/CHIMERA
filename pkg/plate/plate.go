@@ -6,12 +6,20 @@ import (
 	"time"
 
 	"github.com/Hyperloop-UPV/NATSOS/pkg/adj"
+	"github.com/Hyperloop-UPV/NATSOS/pkg/network"
 )
 
 // NewPlateRuntime creates a new PlateRuntime for the given board and remote address. It resolves the local address based on the board's IP and creates a UDP connection to the backend. The local address is created as a dummy IP before, so it doesn't need to be actually assigned to an interface. The backend will receive the packets sent by the plate runtime and forward them to the decodification
 func NewPlateRuntime(board adj.Board, remoteAddr *net.UDPAddr, period time.Duration) (*PlateRuntime, error) {
 
+	// Set up a dummy interface for the board
+	interfaceName, err := network.SetUpDummyInterface(board.Name, board.IP)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set up dummy interface for board %s: %v", board.Name, err)
+	}
+
 	// Resolve the local address for the board the IP of the board must have been created as a dummy IP before
+	// :0 selects a random port
 	localAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:0", board.IP))
 	if err != nil {
 		return nil, fmt.Errorf("error resolving local address: %v", err)
@@ -25,8 +33,9 @@ func NewPlateRuntime(board adj.Board, remoteAddr *net.UDPAddr, period time.Durat
 
 	// Return the plate runtime
 	plate := &PlateRuntime{
-		Board: board,
-		Conn:  conn,
+		Board:              board,
+		Conn:               conn,
+		BoardInterfaceName: interfaceName,
 	}
 
 	plate.applyADJBoardConfig(period) // Default period of 1 second for all packets, can be customized later
@@ -69,4 +78,18 @@ func (plate *PlateRuntime) applyADJBoardConfig(period time.Duration) {
 			Measurements: measStates,
 		})
 	}
+}
+
+func (plate *PlateRuntime) Delete() error {
+
+	// Closes connection
+	if err := plate.Conn.Close(); err != nil {
+		return err
+	}
+
+	if err := network.DeleteInterface(plate.BoardInterfaceName); err != nil {
+		return err
+	}
+
+	return nil
 }
