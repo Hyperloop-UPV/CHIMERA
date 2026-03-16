@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 	"sync"
 )
 
@@ -83,7 +84,8 @@ func (s *Server) handleConn(conn net.Conn) {
 	defer s.wg.Done()
 	defer conn.Close()
 
-	//TODO: add welcome message
+	// Welcome message
+	writeLine(conn, "Welcome to CHIMERA control server. Type 'h' for help.")
 
 	// Reader
 	scanner := bufio.NewScanner(conn)
@@ -100,11 +102,22 @@ func (s *Server) handleConn(conn net.Conn) {
 			continue
 		}
 
+		// Allow clients to close connection
+		switch strings.ToLower(cmd[0]) {
+		case "quit", "exit", "bye":
+			writeLine(conn, "BYE")
+			return
+		}
+
 		// Compute answer
 		resp := s.handler(cmd)
 
 		// Print output
 		writeLine(conn, resp)
+	}
+
+	if err := scanner.Err(); err != nil {
+		writeLine(conn, "ERROR: "+err.Error())
 	}
 }
 
