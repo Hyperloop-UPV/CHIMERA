@@ -17,8 +17,8 @@ type PlateGenerators map[string]PlateRuntime
 // PlateRuntime is the main struct for the plate runtime. It contains the board and the connection to the backend
 
 type PlateRuntime struct {
-	Board adj.Board
-	Conn  *net.UDPConn
+	Board   adj.Board
+	UDPConn *net.UDPConn
 
 	BoardInterfaceName string
 

@@ -11,7 +11,7 @@ import (
 func (plate *PlateRuntime) Start(ctx context.Context) {
 
 	for _, pkt := range plate.Packets {
-		go pkt.Run(ctx, plate.Conn)
+		go pkt.Run(ctx, plate.UDPConn)
 	}
 }
 

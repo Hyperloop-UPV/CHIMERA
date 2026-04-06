@@ -34,7 +34,7 @@ func NewPlateRuntime(board adj.Board, remoteAddr *net.UDPAddr, period time.Durat
 	// Return the plate runtime
 	plate := &PlateRuntime{
 		Board:              board,
-		Conn:               conn,
+		UDPConn:            conn,
 		BoardInterfaceName: interfaceName,
 	}
 
@@ -83,7 +83,7 @@ func (plate *PlateRuntime) applyADJBoardConfig(period time.Duration) {
 func (plate *PlateRuntime) Delete() error {
 
 	// Closes connection
-	if err := plate.Conn.Close(); err != nil {
+	if err := plate.UDPConn.Close(); err != nil {
 		return err
 	}
 
