@@ -124,24 +124,35 @@ func (plate *PlateRuntime) createInterface() error {
 
 // Delete cleans up the plate runtime by closing connections and deleting the dummy interface.
 func (plate *PlateRuntime) Delete() error {
+	var errs []error
 
-	// Close UDP connection
 	if plate.UDPConn != nil {
 		if err := plate.UDPConn.Close(); err != nil {
-			return err
+			errs = append(errs, fmt.Errorf("udp close failed: %w", err))
 		}
+		plate.UDPConn = nil
 	}
 
-	// Close TCP listener if created
 	if plate.TCPListener != nil {
 		if err := plate.TCPListener.Close(); err != nil {
-			return err
+			errs = append(errs, fmt.Errorf("tcp close failed: %w", err))
 		}
+		plate.TCPListener = nil
 	}
 
-	if err := network.DeleteInterface(plate.BoardInterfaceName); err != nil {
-		return err
+	if plate.BoardInterfaceName != "" {
+		if err := network.DeleteInterface(plate.BoardInterfaceName); err != nil {
+			errs = append(errs, fmt.Errorf("delete interface failed: %w", err))
+		}
+		plate.BoardInterfaceName = ""
 	}
 
-	return nil
+	switch len(errs) {
+	case 0:
+		return nil
+	case 1:
+		return errs[0]
+	default:
+		return fmt.Errorf("delete encountered multiple errors: %v", errs)
+	}
 }
