@@ -20,15 +20,29 @@ type PlateRuntime struct {
 	//ADJ data
 	Board adj.Board
 
+	status PlateStatus
+
 	//Connection data
 	UDPConn     *net.UDPConn
 	TCPListener *net.TCPListener
 
 	//Interface name of the dummy interface created for the board, used for cleanup
 	boardInterfaceName string
-	Packets            []*PacketRuntime
-	Measurements       map[MeasurementID]*MeasurementState // Map of measurement name to its state, for easy access and updates
+	ipAddressCIDR      string
+
+	// Runtime data
+	Packets      []*PacketRuntime
+	Measurements map[MeasurementID]*MeasurementState // Map of measurement name to its state, for easy access and updates
 }
+
+// status of the plate runtime
+
+type PlateStatus int
+
+const (
+	StatusOK PlateStatus = iota
+	StatusUnavailable
+)
 
 type PacketRuntime struct {
 	Packet adj.Packet

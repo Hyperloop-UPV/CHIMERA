@@ -72,7 +72,7 @@ func SetUpExternalInterface(iface string, ip string) error {
 
 // Dummy Interfaces
 
-// SetupDummyInterface creates a dummy network interface with the specified name and IP address, and brings it up. returns an string that matches the dummyInterfaceName and error
+// SetupDummyInterface creates a dummy network interface with the specified name and IP address, and brings it up. returns an string that matches the dummyInterfaceName and error ip should be in CIDR format (e.g. "192.168.1.2/24")
 func SetUpDummyInterface(dummyName string, ip string) error {
 
 	// Check if the ip address is valid
@@ -80,16 +80,14 @@ func SetUpDummyInterface(dummyName string, ip string) error {
 		return fmt.Errorf("invalid IP address: %s", ip)
 	}
 
-	dummyIP := AddSubnetMask(ip, 24)
-
-	// Create the dummy interface
+	// Create the dummy interface-
 	if err := utils.RunCommandSilent("ip", "link", "add", dummyName, "type", "dummy"); err != nil {
 
 		return err
 	}
 
 	// Add the IP address to the dummy interface
-	if err := utils.RunCommandSilent("ip", "addr", "add", dummyIP, "dev", dummyName); err != nil {
+	if err := utils.RunCommandSilent("ip", "addr", "add", ip, "dev", dummyName); err != nil {
 		DeleteInterface(dummyName) // Cleanup the dummy interface if IP configuration fails
 		return err
 	}
@@ -107,6 +105,21 @@ func SetUpDummyInterface(dummyName string, ip string) error {
 func DeleteInterface(ifaceName string) error {
 
 	return utils.RunCommandSilent("ip", "link", "delete", ifaceName)
+}
+
+// AddIPToInterface adds the specified IP address to the given network interface.
+// is asumed that the interface is already up and configured with an IP address,
+func AddIPToInterface(iface string, ip string) error {
+
+	return utils.RunCommandSilent("ip", "addr", "add", ip, "dev", iface)
+
+}
+
+// DeleteIPFromInterface removes the specified IP address from the given network interface.
+func DeleteIPFromInterface(iface string, ip string) error {
+
+	return utils.RunCommandSilent("ip", "addr", "del", ip, "dev", iface)
+
 }
 
 func GenerateDummyInterfaceName(boardName string) string {

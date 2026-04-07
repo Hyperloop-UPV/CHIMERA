@@ -16,6 +16,8 @@ func NewPlateRuntime(board adj.Board, remoteAddrUDP *net.UDPAddr, portTCP uint16
 	plate := &PlateRuntime{
 		Board:              board,
 		boardInterfaceName: network.GenerateDummyInterfaceName(board.Name),
+		ipAddressCIDR:      network.AddSubnetMask(board.IP, 24),
+		status:             StatusOK,
 	}
 
 	// Create dummy interface
@@ -40,6 +42,79 @@ func NewPlateRuntime(board adj.Board, remoteAddrUDP *net.UDPAddr, portTCP uint16
 
 	return plate, nil
 }
+
+/*****************
+* Public methods *
+*****************/
+
+// AbruptlyClose forcefully closes the plate runtime connection by removing its IP.
+// Due to kernel limitations if you set down the iface while the connection is active, the connection will still be active
+func (plate *PlateRuntime) AbruptlyClose() error {
+
+	// Remove the IP address from the interface to forcefully close the connection
+	if err := network.DeleteIPFromInterface(plate.boardInterfaceName, plate.ipAddressCIDR); err != nil {
+		return fmt.Errorf("failed to delete IP from interface: %w", err)
+	}
+	plate.status = StatusUnavailable
+	return nil
+}
+
+// RestoreIP restores the IP address to the dummy interface, allowing the plate runtime to re-establish the connection if needed.
+func (plate *PlateRuntime) RestoreIP() error {
+
+	// Add the IP address back to the interface to restore the connection
+	if err := network.AddIPToInterface(plate.boardInterfaceName, plate.ipAddressCIDR); err != nil {
+		return fmt.Errorf("failed to add IP to interface: %w", err)
+	}
+
+	plate.status = StatusOK
+
+	return nil
+}
+
+// Delete cleans up the plate runtime by closing connections and deleting the dummy interface.
+func (plate *PlateRuntime) Delete() error {
+	var errs []error
+
+	if plate.UDPConn != nil {
+		if err := plate.UDPConn.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("udp close failed: %w", err))
+		}
+		plate.UDPConn = nil
+	}
+
+	if plate.TCPListener != nil {
+		if err := plate.TCPListener.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("tcp close failed: %w", err))
+		}
+		plate.TCPListener = nil
+	}
+
+	if plate.boardInterfaceName != "" {
+		if err := network.DeleteInterface(plate.boardInterfaceName); err != nil {
+			errs = append(errs, fmt.Errorf("delete interface failed: %w", err))
+		}
+		plate.boardInterfaceName = ""
+	}
+
+	switch len(errs) {
+	case 0:
+		return nil
+	case 1:
+		return errs[0]
+	default:
+		return fmt.Errorf("delete encountered multiple errors: %v", errs)
+	}
+}
+
+// GetStatus returns the current status of the plate runtime, indicating whether it is operational or unavailable.
+func (plate *PlateRuntime) GetStatus() PlateStatus {
+	return plate.status
+}
+
+/******************
+* Private methods *
+******************/
 
 // setupUDPConnection sets up a UDP connection to the backend
 func (plate *PlateRuntime) setupUDPConnection(remoteAddr *net.UDPAddr) error {
@@ -120,39 +195,4 @@ func (plate *PlateRuntime) createInterface() error {
 	}
 
 	return nil
-}
-
-// Delete cleans up the plate runtime by closing connections and deleting the dummy interface.
-func (plate *PlateRuntime) Delete() error {
-	var errs []error
-
-	if plate.UDPConn != nil {
-		if err := plate.UDPConn.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("udp close failed: %w", err))
-		}
-		plate.UDPConn = nil
-	}
-
-	if plate.TCPListener != nil {
-		if err := plate.TCPListener.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("tcp close failed: %w", err))
-		}
-		plate.TCPListener = nil
-	}
-
-	if plate.boardInterfaceName != "" {
-		if err := network.DeleteInterface(plate.boardInterfaceName); err != nil {
-			errs = append(errs, fmt.Errorf("delete interface failed: %w", err))
-		}
-		plate.boardInterfaceName = ""
-	}
-
-	switch len(errs) {
-	case 0:
-		return nil
-	case 1:
-		return errs[0]
-	default:
-		return fmt.Errorf("delete encountered multiple errors: %v", errs)
-	}
 }
