@@ -11,8 +11,6 @@ import (
 // Parse Value given astring parses it
 func ParseValue(m adj.Measurement, input string) (float64, error) {
 
-	fmt.Print(input, "  ", m.Type, "  ", m.Name)
-
 	// ---------- ENUM (always uint8) ----------
 	if len(m.EnumValues) > 0 {
 

@@ -59,8 +59,6 @@ func (m *MeasurementState) SetGenerator(newG string) error {
 		return err
 	}
 
-	fmt.Println(" sdf", val)
-
 	m.Generator = &generator.FixedGenerator{
 		Value: val,
 	}
