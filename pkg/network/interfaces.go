@@ -73,33 +73,34 @@ func SetUpExternalInterface(iface string, ip string) error {
 // Dummy Interfaces
 
 // SetupDummyInterface creates a dummy network interface with the specified name and IP address, and brings it up. returns an string that matches the dummyInterfaceName and error
-func SetUpDummyInterface(name string, ip string) (string, error) {
-
-	dummyName := generateDummyInterfaceName(name)
+func SetUpDummyInterface(dummyName string, ip string) error {
 
 	// Check if the ip address is valid
 	if !IsValidIPv4(ip) {
-		return "", fmt.Errorf("invalid IP address: %s", ip)
+		return fmt.Errorf("invalid IP address: %s", ip)
 	}
 
 	dummyIP := AddSubnetMask(ip, 16)
 
 	// Create the dummy interface
 	if err := utils.RunCommandSilent("ip", "link", "add", dummyName, "type", "dummy"); err != nil {
-		return "", err
+
+		return err
 	}
 
 	// Add the IP address to the dummy interface
 	if err := utils.RunCommandSilent("ip", "addr", "add", dummyIP, "dev", dummyName); err != nil {
-		return "", err
+		DeleteInterface(dummyName) // Cleanup the dummy interface if IP configuration fails
+		return err
 	}
 
 	// Bring the dummy interface up
 	if err := utils.RunCommandSilent("ip", "link", "set", dummyName, "up"); err != nil {
-		return "", err
+		DeleteInterface(dummyName) // Cleanup the dummy interface if bringing it up fails
+		return err
 	}
 
-	return dummyName, nil
+	return nil
 }
 
 // DeleteInterface given a iface name deletes it
@@ -108,7 +109,7 @@ func DeleteInterface(ifaceName string) error {
 	return utils.RunCommandSilent("ip", "link", "delete", ifaceName)
 }
 
-func generateDummyInterfaceName(boardName string) string {
+func GenerateDummyInterfaceName(boardName string) string {
 
 	// remmove spaces and special characters from the board name and convert it to uppercase
 	boardName = strings.ReplaceAll(boardName, " ", "")

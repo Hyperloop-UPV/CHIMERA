@@ -14,7 +14,8 @@ func NewPlateRuntime(board adj.Board, remoteAddrUDP *net.UDPAddr, portTCP uint16
 
 	// Create plate runtime
 	plate := &PlateRuntime{
-		Board: board,
+		Board:              board,
+		boardInterfaceName: network.GenerateDummyInterfaceName(board.Name),
 	}
 
 	// Create dummy interface
@@ -113,12 +114,11 @@ func (plate *PlateRuntime) applyADJBoardConfig(period time.Duration) {
 
 // createInterface creates a dummy interface
 func (plate *PlateRuntime) createInterface() error {
-	interfaceName, err := network.SetUpDummyInterface(plate.Board.Name, plate.Board.IP)
+	err := network.SetUpDummyInterface(plate.boardInterfaceName, plate.Board.IP)
 	if err != nil {
 		return fmt.Errorf("failed to set up dummy interface for board %s: %v", plate.Board.Name, err)
 	}
 
-	plate.BoardInterfaceName = interfaceName
 	return nil
 }
 
@@ -140,11 +140,11 @@ func (plate *PlateRuntime) Delete() error {
 		plate.TCPListener = nil
 	}
 
-	if plate.BoardInterfaceName != "" {
-		if err := network.DeleteInterface(plate.BoardInterfaceName); err != nil {
+	if plate.boardInterfaceName != "" {
+		if err := network.DeleteInterface(plate.boardInterfaceName); err != nil {
 			errs = append(errs, fmt.Errorf("delete interface failed: %w", err))
 		}
-		plate.BoardInterfaceName = ""
+		plate.boardInterfaceName = ""
 	}
 
 	switch len(errs) {

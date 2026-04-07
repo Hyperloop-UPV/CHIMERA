@@ -25,7 +25,7 @@ type PlateRuntime struct {
 	TCPListener *net.TCPListener
 
 	//Interface name of the dummy interface created for the board, used for cleanup
-	BoardInterfaceName string
+	boardInterfaceName string
 	Packets            []*PacketRuntime
 	Measurements       map[MeasurementID]*MeasurementState // Map of measurement name to its state, for easy access and updates
 }
