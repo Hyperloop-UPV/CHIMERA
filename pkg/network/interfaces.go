@@ -80,7 +80,7 @@ func SetUpDummyInterface(dummyName string, ip string) error {
 		return fmt.Errorf("invalid IP address: %s", ip)
 	}
 
-	dummyIP := AddSubnetMask(ip, 16)
+	dummyIP := AddSubnetMask(ip, 24)
 
 	// Create the dummy interface
 	if err := utils.RunCommandSilent("ip", "link", "add", dummyName, "type", "dummy"); err != nil {
