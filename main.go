@@ -73,10 +73,12 @@ func main() {
 func configureBoards(adj adj.ADJ, cfg config.Config, ctx context.Context) (plate.PlateGenerators, error) {
 
 	// Obtain backend address from configuration
-	backendAddr, err := net.ResolveUDPAddr("udp", network.FormatIP(adj.Info.Addresses["backend"], int(adj.Info.Ports["UDP"])))
+	backendAddrUDP, err := net.ResolveUDPAddr("udp", network.FormatIP(adj.Info.Addresses["backend"], int(adj.Info.Ports["UDP"])))
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve backend address: %v", err)
+		return nil, fmt.Errorf("failed to resolve backend UDP address: %v", err)
 	}
+
+	portTCP := adj.Info.Ports["TCP_SERVER"]
 
 	// generator runtime
 
@@ -89,7 +91,7 @@ func configureBoards(adj adj.ADJ, cfg config.Config, ctx context.Context) (plate
 	for _, board := range adj.Boards {
 
 		// Create a plate
-		plateRuntime, err := plate.NewPlateRuntime(board, backendAddr, period)
+		plateRuntime, err := plate.NewPlateRuntime(board, backendAddrUDP, portTCP, period)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create plate runtime for board %s: %v", board.Name, err)
 		}

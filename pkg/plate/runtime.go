@@ -17,13 +17,17 @@ type PlateGenerators map[string]PlateRuntime
 // PlateRuntime is the main struct for the plate runtime. It contains the board and the connection to the backend
 
 type PlateRuntime struct {
-	Board   adj.Board
-	UDPConn *net.UDPConn
+	//ADJ data
+	Board adj.Board
 
+	//Connection data
+	UDPConn     *net.UDPConn
+	TCPListener *net.TCPListener
+
+	//Interface name of the dummy interface created for the board, used for cleanup
 	BoardInterfaceName string
-
-	Packets      []*PacketRuntime
-	Measurements map[MeasurementID]*MeasurementState // Map of measurement name to its state, for easy access and updates
+	Packets            []*PacketRuntime
+	Measurements       map[MeasurementID]*MeasurementState // Map of measurement name to its state, for easy access and updates
 }
 
 type PacketRuntime struct {
