@@ -49,7 +49,7 @@ func (m *MeasurementState) SetGenerator(newG string) error {
 	defer m.mu.Unlock()
 
 	// Random generator
-	if strings.EqualFold(newG, "r") {
+	if strings.EqualFold(newG, "r") || strings.EqualFold(newG, "random") {
 		m.Generator = generator.SelectRandomGenerator(m.Measurement)
 		return nil
 	}
