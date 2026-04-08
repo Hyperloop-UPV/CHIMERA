@@ -41,14 +41,6 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	if mode == "tui" {
-		log.Println("Connecting to CHIMERA daemon for remote TUI")
-		if err := control.StartRemoteTUI(cfg.Network.ControlPort); err != nil {
-			log.Fatalf("Failed to start TUI client: %v", err)
-		}
-		return
-	}
-
 	// get the ADJ branch from the configuration and print it
 	adj, err := adj.NewADJ(cfg.ADJBranch, cfg.ADJPath)
 	if err != nil {
@@ -73,6 +65,12 @@ func main() {
 	boardGenerator, err := configureBoards(adj, *cfg, ctx)
 	if err != nil {
 		log.Fatalf("Failed to configure boards: %v", err)
+	}
+
+	if mode == "tui" {
+		log.Println("Starting CHIMERA in TUI mode")
+		control.StartControlServer(cfg.Network.ControlPort, boardGenerator)
+		return
 	}
 
 	log.Println("Starting CHIMERA in daemon mode")
