@@ -75,11 +75,6 @@ func SetUpExternalInterface(iface string, ip string) error {
 // SetupDummyInterface creates a dummy network interface with the specified name and IP address, and brings it up. returns an string that matches the dummyInterfaceName and error ip should be in CIDR format (e.g. "192.168.1.2/24")
 func SetUpDummyInterface(dummyName string, ip string) error {
 
-	// Check if the ip address is valid
-	if !IsValidIPv4(ip) {
-		return fmt.Errorf("invalid IP address: %s", ip)
-	}
-
 	// Create the dummy interface-
 	if err := utils.RunCommandSilent("ip", "link", "add", dummyName, "type", "dummy"); err != nil {
 

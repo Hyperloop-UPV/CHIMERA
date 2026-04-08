@@ -189,7 +189,7 @@ func (plate *PlateRuntime) applyADJBoardConfig(period time.Duration) {
 
 // createInterface creates a dummy interface
 func (plate *PlateRuntime) createInterface() error {
-	err := network.SetUpDummyInterface(plate.boardInterfaceName, plate.Board.IP)
+	err := network.SetUpDummyInterface(plate.boardInterfaceName, plate.ipAddressCIDR)
 	if err != nil {
 		return fmt.Errorf("failed to set up dummy interface for board %s: %v", plate.Board.Name, err)
 	}
