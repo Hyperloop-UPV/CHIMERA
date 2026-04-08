@@ -1,9 +1,11 @@
 package control
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"log"
+	"net"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -11,6 +13,8 @@ import (
 
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/plate"
 )
+
+const controlEndMarker = "__CHIMERA_CMD_END__"
 
 // Control server is the control interface for Chimera's emulator options
 
@@ -22,6 +26,84 @@ func StartControlServer(port int, boards plate.PlateGenerators) {
 	if err := tui.Start(); err != nil {
 		log.Fatal(err)
 		return
+	}
+}
+
+func StartControlDaemon(port int, boards plate.PlateGenerators, stop <-chan struct{}) error {
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to start control daemon: %w", err)
+	}
+	log.Printf("CHIMERA control daemon listening on %s", addr)
+
+	go func() {
+		<-stop
+		ln.Close()
+	}()
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			select {
+			case <-stop:
+				return nil
+			default:
+				log.Printf("control accept error: %v", err)
+				continue
+			}
+		}
+		go handleControlConnection(conn, boards)
+	}
+}
+
+type connWriter struct {
+	writer *bufio.Writer
+}
+
+func (w *connWriter) WriteLine(msg string) error {
+	if _, err := fmt.Fprintln(w.writer, msg); err != nil {
+		return err
+	}
+	return w.writer.Flush()
+}
+
+func handleControlConnection(conn net.Conn, boards plate.PlateGenerators) {
+	defer conn.Close()
+	reader := bufio.NewScanner(conn)
+	writer := &connWriter{writer: bufio.NewWriter(conn)}
+
+	for {
+		if _, err := fmt.Fprint(conn, ""); err != nil {
+			return
+		}
+
+		if !reader.Scan() {
+			return
+		}
+
+		line := strings.TrimSpace(reader.Text())
+		if line == "" {
+			continue
+		}
+
+		if strings.EqualFold(line, "quit") || strings.EqualFold(line, "exit") || strings.EqualFold(line, "bye") {
+			writer.WriteLine("Goodbye")
+			writer.WriteLine(controlEndMarker)
+			return
+		}
+
+		cmd := ParseCommand(line)
+		if len(cmd) == 0 {
+			writer.WriteLine("EMPTY")
+			writer.WriteLine(controlEndMarker)
+			continue
+		}
+
+		if err := handleControlCommand(cmd, boards, writer); err != nil {
+			writer.WriteLine(fmt.Sprintf("ERROR: %v", err))
+		}
+		writer.WriteLine(controlEndMarker)
 	}
 }
 

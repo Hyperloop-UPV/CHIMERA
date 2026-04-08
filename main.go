@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -22,12 +23,30 @@ func main() {
 
 	// Get the configuration file path from command line arguments
 	configFile := flag.String("config", "config.json", "path to the configuration file")
+	modeFlag := flag.String("mode", "daemon", "run mode: daemon or tui")
 	flag.Parse()
+
+	mode := strings.ToLower(strings.TrimSpace(*modeFlag))
+	if flag.NArg() > 0 {
+		mode = strings.ToLower(strings.TrimSpace(flag.Arg(0)))
+	}
+
+	if mode != "daemon" && mode != "tui" {
+		log.Fatalf("Unknown mode %q. Use 'daemon' or 'tui'", mode)
+	}
 
 	// Load the configuration
 	cfg, err := config.LoadConfig(*configFile)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	if mode == "tui" {
+		log.Println("Connecting to CHIMERA daemon for remote TUI")
+		if err := control.StartRemoteTUI(cfg.Network.ControlPort); err != nil {
+			log.Fatalf("Failed to start TUI client: %v", err)
+		}
+		return
 	}
 
 	// get the ADJ branch from the configuration and print it
@@ -56,8 +75,12 @@ func main() {
 		log.Fatalf("Failed to configure boards: %v", err)
 	}
 
-	// Start the integrated TUI control interface
-	go control.StartControlServer(cfg.Network.ControlPort, boardGenerator)
+	log.Println("Starting CHIMERA in daemon mode")
+	go func() {
+		if err := control.StartControlDaemon(cfg.Network.ControlPort, boardGenerator, ctx.Done()); err != nil {
+			log.Fatalf("Control daemon failed: %v", err)
+		}
+	}()
 
 	// Wait until Ctrl+C
 	<-ctx.Done()
