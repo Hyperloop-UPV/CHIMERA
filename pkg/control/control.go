@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"net"
 	"sort"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -14,23 +12,17 @@ import (
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/plate"
 )
 
-// Control server is the auxiliar server that controls Chimera's emulator options
+// Control server is the control interface for Chimera's emulator options
 
 func StartControlServer(port int, boards plate.PlateGenerators) {
+	tui := NewTUIServer(boards)
 
-	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(port))
+	log.Printf("Starting CHIMERA control interface")
 
-	server := NewServer(addr, func(cmd Command, w ResponseWriter) error {
-		return handleCommand(cmd, boards, w)
-	})
-
-	log.Printf("Control server started in 0.0.0.0:%d", port)
-
-	if err := server.Start(); err != nil {
+	if err := tui.Start(); err != nil {
 		log.Fatal(err)
 		return
 	}
-
 }
 
 type commandHandler func(Command, plate.PlateGenerators, ResponseWriter) error
@@ -41,19 +33,6 @@ var controlHandlers = map[string]commandHandler{
 	"list": handleList,
 	"set":  handleSet,
 	"test": handleTest,
-}
-
-func handleCommand(cmd Command, boards plate.PlateGenerators, w ResponseWriter) error {
-	if len(cmd) == 0 {
-		return fmt.Errorf("EMPTY")
-	}
-
-	handler, ok := controlHandlers[strings.ToLower(cmd[0])]
-	if !ok {
-		return fmt.Errorf("Unknown order. Use \"h\" to access the help menu")
-	}
-
-	return handler(cmd, boards, w)
 }
 
 func handleHelp(_ Command, _ plate.PlateGenerators, w ResponseWriter) error {
@@ -184,12 +163,12 @@ func handleSet(cmd Command, boards plate.PlateGenerators, w ResponseWriter) erro
 	measID := plate.MeasurementID(cmd[2])
 	value := cmd[3]
 
-	rt, ok := boards[boardName]
+	selected_board, ok := boards[boardName]
 	if !ok {
 		return w.WriteLine("ERROR: board not found")
 	}
 
-	measState, ok := rt.Measurements[measID]
+	measState, ok := selected_board.Measurements[measID]
 	if !ok {
 		return w.WriteLine("ERROR: measurement not found")
 	}

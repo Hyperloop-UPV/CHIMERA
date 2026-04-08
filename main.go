@@ -56,6 +56,7 @@ func main() {
 		log.Fatalf("Failed to configure boards: %v", err)
 	}
 
+	// Start the integrated TUI control interface
 	go control.StartControlServer(cfg.Network.ControlPort, boardGenerator)
 
 	// Wait until Ctrl+C
