@@ -9,7 +9,11 @@ import (
 	"sync"
 )
 
-type HandlerFunc func(Command) string
+type ResponseWriter interface {
+	WriteLine(string) error
+}
+
+type HandlerFunc func(Command, ResponseWriter) error
 
 type Server struct {
 	address string
@@ -17,6 +21,14 @@ type Server struct {
 
 	listener net.Listener
 	wg       sync.WaitGroup
+}
+
+type connResponseWriter struct {
+	conn net.Conn
+}
+
+func (w connResponseWriter) WriteLine(msg string) error {
+	return writeLine(w.conn, msg)
 }
 
 // NewServer creates a Server Struct
@@ -95,25 +107,30 @@ func (s *Server) handleConn(conn net.Conn) {
 
 		// Parse
 		line := scanner.Text()
-		cmd := ParseCommand(line)
+		commands := ParseCommands(line)
 
-		if len(cmd) == 0 {
+		if len(commands) == 0 {
 			writeLine(conn, "EMPTY")
 			continue
 		}
 
-		// Allow clients to close connection
-		switch strings.ToLower(cmd[0]) {
-		case "quit", "exit", "bye":
-			writeLine(conn, "BYE")
-			return
+		writer := connResponseWriter{conn: conn}
+		for _, cmd := range commands {
+			if len(cmd) == 0 {
+				continue
+			}
+
+			// Allow clients to close connection
+			switch strings.ToLower(cmd[0]) {
+			case "quit", "exit", "bye":
+				writeLine(conn, "BYE")
+				return
+			}
+
+			if err := s.handler(cmd, writer); err != nil {
+				writeLine(conn, "ERROR: "+err.Error())
+			}
 		}
-
-		// Compute answer
-		resp := s.handler(cmd)
-
-		// Print output
-		writeLine(conn, resp)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -122,6 +139,7 @@ func (s *Server) handleConn(conn net.Conn) {
 }
 
 // write line helper
-func writeLine(conn net.Conn, msg string) {
-	_, _ = conn.Write([]byte(msg + "\n"))
+func writeLine(conn net.Conn, msg string) error {
+	_, err := conn.Write([]byte(msg + "\n"))
+	return err
 }
