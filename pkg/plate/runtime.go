@@ -33,6 +33,9 @@ type PlateRuntime struct {
 	// Runtime data
 	Packets      []*PacketRuntime
 	Measurements map[MeasurementID]*MeasurementState // Map of measurement name to its state, for easy access and updates
+
+	// EventCh receives human-readable TCP connection/disconnection events for display in the TUI
+	EventCh chan string
 }
 
 // status of the plate runtime

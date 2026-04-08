@@ -8,6 +8,7 @@ import (
 	"net"
 	"sort"
 	"strings"
+	"sync"
 	"text/tabwriter"
 	"time"
 
@@ -15,6 +16,43 @@ import (
 )
 
 const controlEndMarker = "__CHIMERA_CMD_END__"
+const purple = "\033[35m"
+const reset = "\033[0m"
+
+type eventBroadcaster struct {
+	mu          sync.Mutex
+	subscribers map[chan string]struct{}
+}
+
+func newEventBroadcaster() *eventBroadcaster {
+	return &eventBroadcaster{subscribers: make(map[chan string]struct{})}
+}
+
+func (b *eventBroadcaster) subscribe() chan string {
+	ch := make(chan string, 16)
+	b.mu.Lock()
+	b.subscribers[ch] = struct{}{}
+	b.mu.Unlock()
+	return ch
+}
+
+func (b *eventBroadcaster) unsubscribe(ch chan string) {
+	b.mu.Lock()
+	delete(b.subscribers, ch)
+	b.mu.Unlock()
+	close(ch)
+}
+
+func (b *eventBroadcaster) broadcast(event string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	for ch := range b.subscribers {
+		select {
+		case ch <- event:
+		default:
+		}
+	}
+}
 
 // Control server is the control interface for Chimera's emulator options
 
@@ -37,6 +75,15 @@ func StartControlDaemon(port int, boards plate.PlateGenerators, stop <-chan stru
 	}
 	log.Printf("CHIMERA control daemon listening on %s", addr)
 
+	broadcaster := newEventBroadcaster()
+	for _, rt := range boards {
+		go func(ch chan string) {
+			for event := range ch {
+				broadcaster.broadcast(event)
+			}
+		}(rt.EventCh)
+	}
+
 	go func() {
 		<-stop
 		ln.Close()
@@ -53,7 +100,7 @@ func StartControlDaemon(port int, boards plate.PlateGenerators, stop <-chan stru
 				continue
 			}
 		}
-		go handleControlConnection(conn, boards)
+		go handleControlConnection(conn, boards, broadcaster)
 	}
 }
 
@@ -68,7 +115,7 @@ func (w *connWriter) WriteLine(msg string) error {
 	return w.writer.Flush()
 }
 
-func handleControlConnection(conn net.Conn, boards plate.PlateGenerators) {
+func handleControlConnection(conn net.Conn, boards plate.PlateGenerators, broadcaster *eventBroadcaster) {
 	defer conn.Close()
 	reader := bufio.NewScanner(conn)
 	writer := &connWriter{writer: bufio.NewWriter(conn)}
@@ -93,6 +140,11 @@ func handleControlConnection(conn net.Conn, boards plate.PlateGenerators) {
 			return
 		}
 
+		if strings.EqualFold(line, "events") {
+			handleEventStream(conn, broadcaster)
+			return
+		}
+
 		cmd := ParseCommand(line)
 		if len(cmd) == 0 {
 			writer.WriteLine("EMPTY")
@@ -104,6 +156,21 @@ func handleControlConnection(conn net.Conn, boards plate.PlateGenerators) {
 			writer.WriteLine(fmt.Sprintf("ERROR: %v", err))
 		}
 		writer.WriteLine(controlEndMarker)
+	}
+}
+
+func handleEventStream(conn net.Conn, broadcaster *eventBroadcaster) {
+	ch := broadcaster.subscribe()
+	defer broadcaster.unsubscribe(ch)
+
+	w := bufio.NewWriter(conn)
+	for event := range ch {
+		if _, err := fmt.Fprintln(w, event); err != nil {
+			return
+		}
+		if err := w.Flush(); err != nil {
+			return
+		}
 	}
 }
 

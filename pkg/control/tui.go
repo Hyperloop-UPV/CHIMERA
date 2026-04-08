@@ -11,6 +11,10 @@ import (
 	prompt "github.com/c-bata/go-prompt"
 )
 
+func logPurple(event string) {
+	fmt.Fprintf(os.Stdout, "\r%s%s%s\n", purple, event, reset)
+}
+
 type TUIServer struct {
 	boards             plate.PlateGenerators
 	boardNames         []prompt.Suggest
@@ -49,6 +53,7 @@ func NewTUIServer(boards plate.PlateGenerators) *TUIServer {
 // Start runs the TUI interface
 func (t *TUIServer) Start() error {
 	t.refreshBoardNames()
+	t.startEventLoggers()
 
 	fmt.Println("\n╔═══════════════════════════════════════╗")
 	fmt.Println("║     CHIMERA Control TUI Interface     ║")
@@ -75,6 +80,16 @@ func (t *TUIServer) Start() error {
 
 	p.Run()
 	return nil
+}
+
+func (t *TUIServer) startEventLoggers() {
+	for _, rt := range t.boards {
+		go func(ch chan string) {
+			for event := range ch {
+				logPurple(event)
+			}
+		}(rt.EventCh)
+	}
 }
 
 func (t *TUIServer) cleanupBoards() {

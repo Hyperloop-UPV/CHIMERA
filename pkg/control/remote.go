@@ -41,6 +41,11 @@ func StartRemoteTUI(port int) error {
 		return fmt.Errorf("failed to sync board metadata: %w", err)
 	}
 
+	// Open a second connection dedicated to streaming TCP events
+	if evConn, err := net.Dial("tcp", addr); err == nil {
+		go streamRemoteEvents(evConn)
+	}
+
 	fmt.Println("Connected to CHIMERA daemon. Type 'quit' to exit.")
 
 	p := prompt.New(
@@ -239,6 +244,15 @@ func (t *remoteTUIServer) requestRemote(command string) (string, error) {
 	}
 
 	return strings.TrimSuffix(builder.String(), "\n"), nil
+}
+
+func streamRemoteEvents(conn net.Conn) {
+	defer conn.Close()
+	fmt.Fprintln(conn, "events")
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		logPurple(scanner.Text())
+	}
 }
 
 func parseMeasurementInfo(response string) (map[string]string, map[string][]string) {
