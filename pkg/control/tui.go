@@ -253,7 +253,7 @@ func (t *TUIServer) refreshBoardNames() {
 
 			// Generate options for enum and bool types
 			var options []prompt.Suggest
-			if strings.Contains(measurement.Measurement.Type, "enum") && len(measurement.Measurement.EnumValues) > 0 {
+			if len(measurement.Measurement.EnumValues) > 0 {
 				for _, enumVal := range measurement.Measurement.EnumValues {
 					options = append(options, prompt.Suggest{
 						Text:        enumVal,
