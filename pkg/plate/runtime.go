@@ -12,7 +12,7 @@ import (
 // Define MeasurementID as an string
 type MeasurementID string
 
-type PlateGenerators map[string]PlateRuntime
+type PlateGenerators map[string]*PlateRuntime
 
 // PlateRuntime is the main struct for the plate runtime. It contains the board and the connection to the backend
 

@@ -106,7 +106,7 @@ func configureBoards(adj adj.ADJ, cfg config.Config, ctx context.Context) (plate
 
 	// generator runtime
 
-	runtimeGenerators := make(map[string]plate.PlateRuntime)
+	runtimeGenerators := make(plate.PlateGenerators)
 
 	// define period
 	period := time.Duration(cfg.InitialPeriod) * time.Millisecond
@@ -126,7 +126,7 @@ func configureBoards(adj adj.ADJ, cfg config.Config, ctx context.Context) (plate
 
 		// Store board
 
-		runtimeGenerators[board.Name] = *plateRuntime
+		runtimeGenerators[board.Name] = plateRuntime
 	}
 
 	return runtimeGenerators, nil

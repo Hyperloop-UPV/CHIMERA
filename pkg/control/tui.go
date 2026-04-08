@@ -88,7 +88,6 @@ func (t *TUIServer) cleanupBoards() {
 		} else {
 			fmt.Printf("Cleaned up board %s\n", boardName)
 		}
-		t.boards[boardName] = rt
 	}
 }
 

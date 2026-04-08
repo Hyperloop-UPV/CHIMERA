@@ -2,6 +2,7 @@ package adj
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path"
 )
@@ -52,7 +53,10 @@ func getBoards(RepoPath string, boardsList map[string]string) (map[string]Board,
 			board.LookUpMeasurements[measurement.Id] = measurement
 		}
 
-		board.Packets = lookUpMeas(boardPackets, board.LookUpMeasurements)
+		board.Packets, err = lookUpMeas(boardPackets, board.LookUpMeasurements)
+		if err != nil {
+			return nil, err
+		}
 
 		board.Structures = getBoardStructures(board)
 
@@ -62,12 +66,15 @@ func getBoards(RepoPath string, boardsList map[string]string) (map[string]Board,
 	return boards, nil
 }
 
-func lookUpMeas(packetsTMP []Packet, lookUpMeas map[string]Measurement) []Packet {
+func lookUpMeas(packetsTMP []Packet, lookUpMeas map[string]Measurement) ([]Packet, error) {
 	packetsFNL := make([]Packet, 0)
 	for _, packetTMP := range packetsTMP {
 		measFNL := make([]Measurement, 0)
 		for _, measId := range packetTMP.VariablesIds {
-			meas := lookUpMeas[measId]
+			meas, ok := lookUpMeas[measId]
+			if !ok {
+				return nil, fmt.Errorf("measurement id %q not found in lookup table", measId)
+			}
 			measFNL = append(measFNL, meas)
 		}
 
@@ -75,7 +82,7 @@ func lookUpMeas(packetsTMP []Packet, lookUpMeas map[string]Measurement) []Packet
 		packetsFNL = append(packetsFNL, packetTMP)
 	}
 
-	return packetsFNL
+	return packetsFNL, nil
 }
 
 func getBoardPackets(packetsPaths []string) ([]Packet, error) {
@@ -197,10 +204,10 @@ func getRanges(measTMP Measurement) ([]*float64, []*float64, error) {
 	return safeRange, warningRange, nil
 }
 
-func getBoardIds(boards map[string]string) (map[string]uint16, error) {
+func getBoardIds(adjDirectory string, boards map[string]string) (map[string]uint16, error) {
 	boardIds := make(map[string]uint16, len(boards))
 	for boardName, boardPath := range boards {
-		fullPath := path.Join(destination, boardPath)
+		fullPath := path.Join(adjDirectory, boardPath)
 		boardRaw, err := os.ReadFile(fullPath)
 		if err != nil {
 			return nil, err

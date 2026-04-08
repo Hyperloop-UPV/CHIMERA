@@ -129,7 +129,7 @@ func NewADJ(AdjBranch string, AdjPath string) (ADJ, error) {
 		return ADJ{}, err
 	}
 
-	info.BoardIds, err = getBoardIds(boardsList)
+	info.BoardIds, err = getBoardIds(adjDirectory, boardsList)
 	if err != nil {
 		return ADJ{}, err
 	}

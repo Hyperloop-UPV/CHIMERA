@@ -282,7 +282,6 @@ func handleTest(cmd Command, boards plate.PlateGenerators, w ResponseWriter) err
 				_ = w.WriteLine(fmt.Sprintf("ERROR %s: %s", boardName, err.Error()))
 				continue
 			}
-			boards[boardName] = rt
 			_ = w.WriteLine(fmt.Sprintf("Connection closed abruptly at %s", boardName))
 		}
 
@@ -296,7 +295,6 @@ func handleTest(cmd Command, boards plate.PlateGenerators, w ResponseWriter) err
 				_ = w.WriteLine(fmt.Sprintf("ERROR restore %s: %s", boardName, err.Error()))
 				continue
 			}
-			boards[boardName] = rt
 			_ = w.WriteLine(fmt.Sprintf("Restored connection for %s", boardName))
 		}
 
@@ -330,7 +328,5 @@ func handleTest(cmd Command, boards plate.PlateGenerators, w ResponseWriter) err
 	}
 
 	w.WriteLine("Restored connection for " + boardName)
-
-	boards[boardName] = rt
 	return w.WriteLine("TCP-abrupt test completed")
 }
