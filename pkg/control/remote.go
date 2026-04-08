@@ -12,11 +12,12 @@ import (
 )
 
 type remoteTUIServer struct {
-	conn           net.Conn
-	reader         *bufio.Reader
-	boardNames     []prompt.Suggest
-	measurements   map[string][]prompt.Suggest
-	measurementMap map[string]map[string]string
+	conn               net.Conn
+	reader             *bufio.Reader
+	boardNames         []prompt.Suggest
+	measurements       map[string][]prompt.Suggest
+	measurementMap     map[string]map[string]string
+	measurementOptions map[string]map[string][]prompt.Suggest
 }
 
 func StartRemoteTUI(port int) error {
@@ -28,11 +29,12 @@ func StartRemoteTUI(port int) error {
 	defer conn.Close()
 
 	tui := &remoteTUIServer{
-		conn:           conn,
-		reader:         bufio.NewReader(conn),
-		boardNames:     []prompt.Suggest{},
-		measurements:   make(map[string][]prompt.Suggest),
-		measurementMap: make(map[string]map[string]string),
+		conn:               conn,
+		reader:             bufio.NewReader(conn),
+		boardNames:         []prompt.Suggest{},
+		measurements:       make(map[string][]prompt.Suggest),
+		measurementMap:     make(map[string]map[string]string),
+		measurementOptions: make(map[string]map[string][]prompt.Suggest),
 	}
 
 	if err := tui.syncBoards(); err != nil {
@@ -140,6 +142,11 @@ func (t *remoteTUIServer) completer(d prompt.Document) []prompt.Suggest {
 		if len(args) == 4 {
 			boardName := strings.ToUpper(args[1])
 			measurementId := args[2]
+			if measurementOpts, ok := t.measurementOptions[boardName]; ok {
+				if options, exists := measurementOpts[measurementId]; exists && len(options) > 0 {
+					return prompt.FilterHasPrefix(options, args[3], true)
+				}
+			}
 			if measurementTypes, ok := t.measurementMap[boardName]; ok {
 				if measurementType, exists := measurementTypes[measurementId]; exists {
 					return []prompt.Suggest{{
@@ -172,24 +179,40 @@ func (t *remoteTUIServer) syncBoards() error {
 
 	t.measurements = make(map[string][]prompt.Suggest)
 	t.measurementMap = make(map[string]map[string]string)
+	t.measurementOptions = make(map[string]map[string][]prompt.Suggest)
 
 	for _, board := range names {
 		response, err := t.requestRemote(fmt.Sprintf("list %s measurements", board))
 		if err != nil {
 			continue
 		}
-		info := parseMeasurementInfo(response)
-		boardMeasurements := make([]prompt.Suggest, 0, len(info))
+		types, enumVals := parseMeasurementInfo(response)
+		boardMeasurements := make([]prompt.Suggest, 0, len(types))
 		measurementTypes := make(map[string]string)
-		for id, typ := range info {
+		measurementOpts := make(map[string][]prompt.Suggest)
+		for id, typ := range types {
 			boardMeasurements = append(boardMeasurements, prompt.Suggest{Text: id, Description: typ})
 			measurementTypes[id] = typ
+
+			if vals, ok := enumVals[id]; ok {
+				opts := make([]prompt.Suggest, len(vals))
+				for i, v := range vals {
+					opts[i] = prompt.Suggest{Text: v, Description: "enum value"}
+				}
+				measurementOpts[id] = opts
+			} else if typ == "bool" {
+				measurementOpts[id] = []prompt.Suggest{
+					{Text: "true", Description: "boolean value"},
+					{Text: "false", Description: "boolean value"},
+				}
+			}
 		}
 		sort.Slice(boardMeasurements, func(i, j int) bool {
 			return boardMeasurements[i].Text < boardMeasurements[j].Text
 		})
 		t.measurements[strings.ToUpper(board)] = boardMeasurements
 		t.measurementMap[strings.ToUpper(board)] = measurementTypes
+		t.measurementOptions[strings.ToUpper(board)] = measurementOpts
 	}
 
 	return nil
@@ -218,22 +241,38 @@ func (t *remoteTUIServer) requestRemote(command string) (string, error) {
 	return strings.TrimSuffix(builder.String(), "\n"), nil
 }
 
-func parseMeasurementInfo(response string) map[string]string {
-	info := make(map[string]string)
+func parseMeasurementInfo(response string) (map[string]string, map[string][]string) {
+	types := make(map[string]string)
+	enumVals := make(map[string][]string)
 	for _, line := range strings.Split(strings.TrimSpace(response), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "MEASUREMENTS") || strings.HasPrefix(line, "PACKETS") || strings.HasPrefix(line, "-------") {
 			continue
 		}
 
-		idx := strings.Index(line, "(")
-		if idx < 0 {
+		openParen := strings.Index(line, "(")
+		if openParen < 0 {
 			continue
 		}
 
-		id := strings.TrimSpace(line[:idx])
-		typ := strings.TrimSpace(strings.TrimSuffix(line[idx+1:], ")"))
-		info[id] = typ
+		id := strings.TrimSpace(line[:openParen])
+		rest := line[openParen+1:]
+
+		closeParen := strings.Index(rest, ")")
+		if closeParen < 0 {
+			continue
+		}
+		typ := strings.TrimSpace(rest[:closeParen])
+		types[id] = typ
+
+		// Extract optional enum values: [val1,val2,...]
+		after := strings.TrimSpace(rest[closeParen+1:])
+		if strings.HasPrefix(after, "[") && strings.HasSuffix(after, "]") {
+			inner := after[1 : len(after)-1]
+			if inner != "" {
+				enumVals[id] = strings.Split(inner, ",")
+			}
+		}
 	}
-	return info
+	return types, enumVals
 }

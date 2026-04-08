@@ -178,7 +178,11 @@ func handleList(cmd Command, boards plate.PlateGenerators, w ResponseWriter) err
 
 	if showMeasurements && !showPackets {
 		for _, m := range rt.Measurements {
-			measurements = append(measurements, fmt.Sprintf("%s (%s)", m.Measurement.Id, m.Measurement.Type))
+			if len(m.Measurement.EnumValues) > 0 {
+				measurements = append(measurements, fmt.Sprintf("%s (%s) [%s]", m.Measurement.Id, m.Measurement.Type, strings.Join(m.Measurement.EnumValues, ",")))
+			} else {
+				measurements = append(measurements, fmt.Sprintf("%s (%s)", m.Measurement.Id, m.Measurement.Type))
+			}
 		}
 		sort.Strings(measurements)
 	}

@@ -31,14 +31,22 @@ func main() {
 		mode = strings.ToLower(strings.TrimSpace(flag.Arg(0)))
 	}
 
-	if mode != "daemon" && mode != "tui" {
-		log.Fatalf("Unknown mode %q. Use 'daemon' or 'tui'", mode)
+	if mode != "daemon" && mode != "tui" && mode != "remote" {
+		log.Fatalf("Unknown mode %q. Use 'daemon', 'tui', or 'remote'", mode)
 	}
 
 	// Load the configuration
 	cfg, err := config.LoadConfig(*configFile)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	if mode == "remote" {
+		log.Println("Connecting to CHIMERA daemon for remote TUI")
+		if err := control.StartRemoteTUI(cfg.Network.ControlPort); err != nil {
+			log.Fatalf("Failed to start remote TUI: %v", err)
+		}
+		return
 	}
 
 	// get the ADJ branch from the configuration and print it
