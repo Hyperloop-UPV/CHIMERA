@@ -127,7 +127,7 @@ func configureBoards(adj adj.ADJ, cfg config.Config, ctx context.Context) (plate
 	for _, board := range adj.Boards {
 
 		// Create a plate
-		plateRuntime, err := plate.NewPlateRuntime(board, backendAddrUDP, portTCP, period)
+		plateRuntime, err := plate.NewPlateRuntime(board, backendAddrUDP, portTCP, period, adj.Info.MessageIds)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create plate runtime for board %s: %v", board.Name, err)
 		}

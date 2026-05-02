@@ -23,37 +23,68 @@ func (plate *PlateRuntime) Start(ctx context.Context) {
 	}
 }
 
+const tcpReadBufferSize = 256
+
+// acceptTCP loops accepting incoming TCP connections and dispatches each one
+// to its own goroutine. It exits when the listener is closed (typically on
+// ctx cancellation).
 func (plate *PlateRuntime) acceptTCP(ctx context.Context) {
 	for {
 		conn, err := plate.TCPListener.AcceptTCP()
 		if err != nil {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				log.Printf("board %s TCP accept error: %v", plate.Board.Name, err)
+			if ctx.Err() != nil {
 				return
 			}
+			log.Printf("board %s TCP accept error: %v", plate.Board.Name, err)
+			return
 		}
-		select {
-		case plate.EventCh <- fmt.Sprintf("[TCP] Board %s: connection from %s", plate.Board.Name, conn.RemoteAddr()):
-		default:
+
+		plate.emitEvent("[TCP] Board %s: connection from %s", plate.Board.Name, conn.RemoteAddr())
+		go plate.handleTCPConnection(conn)
+	}
+}
+
+// handleTCPConnection reads orders from a single TCP connection until it is
+// closed or errors out, decoding and forwarding each one to the event stream.
+func (plate *PlateRuntime) handleTCPConnection(conn *net.TCPConn) {
+	defer func() {
+		plate.emitEvent("[TCP] Board %s: disconnected %s", plate.Board.Name, conn.RemoteAddr())
+		conn.Close()
+	}()
+
+	buf := make([]byte, tcpReadBufferSize)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			return
 		}
-		go func(c *net.TCPConn) {
-			defer func() {
-				select {
-				case plate.EventCh <- fmt.Sprintf("[TCP] Board %s: disconnected %s", plate.Board.Name, c.RemoteAddr()):
-				default:
-				}
-				c.Close()
-			}()
-			buf := make([]byte, 256)
-			for {
-				if _, err := c.Read(buf); err != nil {
-					return
-				}
-			}
-		}(conn)
+		if n == 0 {
+			continue
+		}
+
+		plate.emitEvent("[ORDER] Board %s: %s", plate.Board.Name, plate.decodeOrder(buf[:n]))
+	}
+}
+
+// decodeOrder turns a raw TCP payload into a human-readable string, falling
+// back to a hex dump if the decoder is unavailable or fails.
+func (plate *PlateRuntime) decodeOrder(payload []byte) string {
+	if plate.Decoder == nil {
+		return fmt.Sprintf("<no decoder> %x", payload)
+	}
+
+	decoded, err := plate.Decoder.Decode(payload)
+	if err != nil {
+		return fmt.Sprintf("decode error: %v", err)
+	}
+	return decoded
+}
+
+// emitEvent pushes a formatted message onto the event channel without blocking.
+func (plate *PlateRuntime) emitEvent(format string, args ...any) {
+	select {
+	case plate.EventCh <- fmt.Sprintf(format, args...):
+	default:
 	}
 }
 
@@ -64,9 +95,11 @@ func (pkt *PacketRuntime) Run(ctx context.Context, conn *net.UDPConn) {
 	period := pkt.Period
 	pkt.mu.RUnlock()
 
+	// creates a ticker that ticks at the specified period.
 	ticker := time.NewTicker(period)
 	defer ticker.Stop()
 
+	// Loop that generates and sends packets at each tick until the context is cancelled.
 	for {
 		select {
 

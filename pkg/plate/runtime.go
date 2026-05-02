@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/decoder"
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/generator"
 )
 
@@ -36,6 +37,9 @@ type PlateRuntime struct {
 
 	// EventCh receives human-readable TCP connection/disconnection events for display in the TUI
 	EventCh chan string
+
+	// Decoder turns raw TCP payloads into human-readable orders for the TUI
+	Decoder *decoder.Decoder
 }
 
 // status of the plate runtime

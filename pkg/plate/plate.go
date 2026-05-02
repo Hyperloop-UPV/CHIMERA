@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/adj"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/decoder"
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/network"
 )
 
 // NewPlateRuntime creates a new PlateRuntime for the given board and remote address. It resolves the local address based on the board's IP and creates a UDP connection to the backend. The local address is created as a dummy IP before, so it doesn't need to be actually assigned to an interface. The backend will receive the packets sent by the plate runtime and forward them to the decodification
-func NewPlateRuntime(board adj.Board, remoteAddrUDP *net.UDPAddr, portTCP uint16, period time.Duration) (*PlateRuntime, error) {
+func NewPlateRuntime(board adj.Board, remoteAddrUDP *net.UDPAddr, portTCP uint16, period time.Duration, messageIDs map[string]uint16) (*PlateRuntime, error) {
 
 	// Create plate runtime
 	plate := &PlateRuntime{
@@ -19,6 +20,7 @@ func NewPlateRuntime(board adj.Board, remoteAddrUDP *net.UDPAddr, portTCP uint16
 		ipAddressCIDR:      network.AddSubnetMask(board.IP, 24),
 		status:             StatusOK,
 		EventCh:            make(chan string, 16),
+		Decoder:            decoder.New(board, messageIDs),
 	}
 
 	// Create dummy interface
