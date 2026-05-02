@@ -17,6 +17,7 @@ import (
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/control"
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/network"
 	"github.com/Hyperloop-UPV/CHIMERA/pkg/plate"
+	"github.com/Hyperloop-UPV/CHIMERA/pkg/utils"
 )
 
 func main() {
@@ -24,7 +25,10 @@ func main() {
 	// Get the configuration file path from command line arguments
 	configFile := flag.String("config", "config.json", "path to the configuration file")
 	modeFlag := flag.String("mode", "daemon", "run mode: daemon or tui")
+	verboseFlag := flag.Bool("verbose", false, "log every shell command executed and its output")
 	flag.Parse()
+
+	utils.SetVerbose(*verboseFlag)
 
 	mode := strings.ToLower(strings.TrimSpace(*modeFlag))
 	if flag.NArg() > 0 {

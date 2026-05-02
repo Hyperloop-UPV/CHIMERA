@@ -33,7 +33,7 @@ func CloneADJRepo(branch string) error {
 		ReferenceName: plumbing.NewBranchReferenceName(branch),
 		SingleBranch:  true,
 		Depth:         0,
-		Progress:      os.Stdout,
+		Progress:      nil,
 	}
 
 	// Step 1: Clone into temp directory
