@@ -55,6 +55,8 @@ func main() {
 		log.Fatalf("Failed to initialize ADJ: %v at %s", err, cfg.ADJPath)
 	}
 
+	log.Printf("ADJ branch: %s, commit: %s", adj.Branch, adj.CommitHash)
+
 	// Set up the network configuration
 	if err := network.SetUpNetwork(cfg.Network.Interface, cfg.Network.IP); err != nil {
 		log.Fatalf("Failed to setup network: %v", err)

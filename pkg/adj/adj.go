@@ -7,7 +7,30 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	git "github.com/go-git/go-git/v5"
 )
+
+// ReadHead returns the HEAD commit hash and branch of the ADJ repository at
+// path. Branch is "HEAD detached" if not on a branch.
+func ReadHead(path string) (hash string, branch string, err error) {
+	repo, err := git.PlainOpen(path)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to open ADJ repo at %s: %w", path, err)
+	}
+
+	head, err := repo.Head()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read ADJ HEAD: %w", err)
+	}
+
+	branch = "HEAD detached"
+	if head.Name().IsBranch() {
+		branch = head.Name().Short()
+	}
+
+	return head.Hash().String(), branch, nil
+}
 
 const (
 	// repoURL is the URL of the ADJ repository to clone.
@@ -36,37 +59,55 @@ func GetPath(ADJBranch string, ADJPath string) (string, error) {
 
 		// Check if the provided ADJPath exists and is a directory
 		info, err := os.Stat(ADJPath)
-
-		// Handle errors when accessing the ADJPath
-		if err != nil {
-
-			if os.IsNotExist(err) {
-				return "", fmt.Errorf("ADJ path does not exist: %s", ADJPath)
-			}
-
-			if os.IsPermission(err) {
-				return "", fmt.Errorf("permission denied accessing ADJ path: %s", ADJPath)
-			}
-
-			return "", fmt.Errorf("error accessing ADJ path: %w", err)
+		if err == nil && info.IsDir() {
+			return ADJPath, nil
 		}
 
-		if !info.IsDir() {
-			return "", fmt.Errorf("ADJ path is not a directory: %s", ADJPath)
+		fmt.Printf("Local ADJ path %s unavailable (%v), trying fallback\n", ADJPath, err)
+
+		fallback, fbErr := executableADJFallback()
+		if fbErr != nil {
+			return "", fmt.Errorf("ADJ path %s unavailable and fallback failed: %w", ADJPath, fbErr)
 		}
 
-		// If ADJPath is empty, clone the repository
-
-		return ADJPath, nil
+		fmt.Printf("Using fallback ADJ at %s\n", fallback)
+		return fallback, nil
 	}
 
 	// Clone the ADJ repository safely using atomic swap
 	err := CloneADJRepo(ADJBranch)
 	if err != nil {
-		return "", fmt.Errorf("failed to get ADJ: %w", err)
+		fallback, fbErr := executableADJFallback()
+		if fbErr != nil {
+			return "", fmt.Errorf("failed to get ADJ: %w (fallback unavailable: %v)", err, fbErr)
+		}
+		fmt.Printf("Clone failed, using fallback ADJ at %s\n", fallback)
+		return fallback, nil
 	}
 
 	return destination, nil
+}
+
+// executableADJFallback returns the path to an "adj" directory located next to
+// the running executable, verifying that it exists and is a directory.
+func executableADJFallback() (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("could not determine executable path: %w", err)
+	}
+
+	path := filepath.Join(filepath.Dir(exe), "adj")
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return "", fmt.Errorf("fallback ADJ path not accessible: %w", err)
+	}
+
+	if !info.IsDir() {
+		return "", fmt.Errorf("fallback ADJ path is not a directory: %s", path)
+	}
+
+	return path, nil
 }
 
 // downloadADJ retrieves the ADJ repository, either by cloning it from GitHub or using a local path if provided, and reads the general info and boards list.
@@ -142,9 +183,18 @@ func NewADJ(AdjBranch string, AdjPath string) (ADJ, error) {
 		info.Addresses[target] = address
 	}
 
+	commitHash, branch, err := ReadHead(adjDirectory)
+	if err != nil {
+		fmt.Printf("Warning: could not read ADJ HEAD: %v\n", err)
+		commitHash = "unknown"
+		branch = "unknown"
+	}
+
 	adj := ADJ{
-		Info:   info,
-		Boards: boards,
+		Info:       info,
+		Boards:     boards,
+		CommitHash: commitHash,
+		Branch:     branch,
 	}
 
 	// Check that ADJ has backend address and UDP port defined.

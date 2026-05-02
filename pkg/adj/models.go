@@ -1,8 +1,10 @@
 package adj
 
 type ADJ struct {
-	Info   Info
-	Boards map[string]Board
+	Info       Info
+	Boards     map[string]Board
+	CommitHash string
+	Branch     string
 }
 
 type InfoJSON struct {
