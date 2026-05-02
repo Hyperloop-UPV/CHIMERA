@@ -56,8 +56,8 @@ func (b *eventBroadcaster) broadcast(event string) {
 
 // Control server is the control interface for Chimera's emulator options
 
-func StartControlServer(port int, boards plate.PlateGenerators) {
-	tui := NewTUIServer(boards)
+func StartControlServer(port int, boards plate.PlateGenerators, adjBranch, adjCommit string) {
+	tui := NewTUIServer(boards, adjBranch, adjCommit)
 
 	log.Printf("Starting CHIMERA control interface")
 

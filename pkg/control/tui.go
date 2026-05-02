@@ -21,6 +21,8 @@ type TUIServer struct {
 	measurements       map[string][]prompt.Suggest            // boardName -> measurements
 	measurementMap     map[string]map[string]string           // boardName -> measurementId -> type
 	measurementOptions map[string]map[string][]prompt.Suggest // boardName -> measurementId -> possible values
+	adjBranch          string
+	adjCommit          string
 }
 
 type bufferWriter struct {
@@ -40,13 +42,15 @@ func (w *stdoutWriter) WriteLine(msg string) error {
 }
 
 // NewTUIServer creates a new TUI control interface
-func NewTUIServer(boards plate.PlateGenerators) *TUIServer {
+func NewTUIServer(boards plate.PlateGenerators, adjBranch, adjCommit string) *TUIServer {
 	return &TUIServer{
 		boards:             boards,
 		boardNames:         []prompt.Suggest{},
 		measurements:       make(map[string][]prompt.Suggest),
 		measurementMap:     make(map[string]map[string]string),
 		measurementOptions: make(map[string]map[string][]prompt.Suggest),
+		adjBranch:          adjBranch,
+		adjCommit:          adjCommit,
 	}
 }
 
@@ -58,6 +62,7 @@ func (t *TUIServer) Start() error {
 	fmt.Println("\n╔═══════════════════════════════════════╗")
 	fmt.Println("║     CHIMERA Control TUI Interface     ║")
 	fmt.Println("╚═══════════════════════════════════════╝")
+	fmt.Printf("ADJ branch: %s, commit: %s\n", t.adjBranch, t.adjCommit)
 	fmt.Println("Type 'h' for help or 'quit' to exit")
 
 	p := prompt.New(

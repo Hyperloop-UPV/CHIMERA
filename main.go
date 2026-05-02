@@ -79,7 +79,7 @@ func main() {
 
 	if mode == "tui" {
 		log.Println("Starting CHIMERA in TUI mode")
-		control.StartControlServer(cfg.Network.ControlPort, boardGenerator)
+		control.StartControlServer(cfg.Network.ControlPort, boardGenerator, adj.Branch, adj.CommitHash)
 		return
 	}
 
