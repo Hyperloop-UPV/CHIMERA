@@ -11,8 +11,13 @@ import (
 	prompt "github.com/c-bata/go-prompt"
 )
 
-func logPurple(event string) {
-	fmt.Fprintf(os.Stdout, "\r%s%s%s\n", purple, event, reset)
+// logEvent prints a plate event to stdout, choosing a color from its kind.
+func logEvent(ev plate.Event) {
+	color := purple
+	if ev.Kind == plate.EventOrder {
+		color = blue
+	}
+	fmt.Fprintf(os.Stdout, "\r%s%s%s\n", color, ev.Message, reset)
 }
 
 type TUIServer struct {
@@ -89,9 +94,9 @@ func (t *TUIServer) Start() error {
 
 func (t *TUIServer) startEventLoggers() {
 	for _, rt := range t.boards {
-		go func(ch chan string) {
-			for event := range ch {
-				logPurple(event)
+		go func(ch chan plate.Event) {
+			for ev := range ch {
+				logEvent(ev)
 			}
 		}(rt.EventCh)
 	}

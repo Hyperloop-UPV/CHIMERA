@@ -8,9 +8,6 @@ import (
 	"time"
 )
 
-const purple = "\033[35m"
-const reset = "\033[0m"
-
 // Start starts the plate runtime, which runs a goroutine for each data packet defined in the board. Each goroutine generates and sends packets at the specified period until the context is cancelled.
 func (plate *PlateRuntime) Start(ctx context.Context) {
 
@@ -39,7 +36,7 @@ func (plate *PlateRuntime) acceptTCP(ctx context.Context) {
 			return
 		}
 
-		plate.emitEvent("[TCP] Board %s: connection from %s", plate.Board.Name, conn.RemoteAddr())
+		plate.emitEvent(EventTCP, "[TCP] Board %s: connection from %s", plate.Board.Name, conn.RemoteAddr())
 		go plate.handleTCPConnection(conn)
 	}
 }
@@ -48,7 +45,7 @@ func (plate *PlateRuntime) acceptTCP(ctx context.Context) {
 // closed or errors out, decoding and forwarding each one to the event stream.
 func (plate *PlateRuntime) handleTCPConnection(conn *net.TCPConn) {
 	defer func() {
-		plate.emitEvent("[TCP] Board %s: disconnected %s", plate.Board.Name, conn.RemoteAddr())
+		plate.emitEvent(EventTCP, "[TCP] Board %s: disconnected %s", plate.Board.Name, conn.RemoteAddr())
 		conn.Close()
 	}()
 
@@ -62,7 +59,7 @@ func (plate *PlateRuntime) handleTCPConnection(conn *net.TCPConn) {
 			continue
 		}
 
-		plate.emitEvent("[ORDER] Board %s: %s", plate.Board.Name, plate.decodeOrder(buf[:n]))
+		plate.emitEvent(EventOrder, "[ORDER] Board %s: %s", plate.Board.Name, plate.decodeOrder(buf[:n]))
 	}
 }
 
@@ -80,10 +77,10 @@ func (plate *PlateRuntime) decodeOrder(payload []byte) string {
 	return decoded
 }
 
-// emitEvent pushes a formatted message onto the event channel without blocking.
-func (plate *PlateRuntime) emitEvent(format string, args ...any) {
+// emitEvent pushes a categorized event onto the event channel without blocking.
+func (plate *PlateRuntime) emitEvent(kind EventKind, format string, args ...any) {
 	select {
-	case plate.EventCh <- fmt.Sprintf(format, args...):
+	case plate.EventCh <- Event{Kind: kind, Message: fmt.Sprintf(format, args...)}:
 	default:
 	}
 }

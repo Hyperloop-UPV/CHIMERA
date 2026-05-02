@@ -19,7 +19,7 @@ func NewPlateRuntime(board adj.Board, remoteAddrUDP *net.UDPAddr, portTCP uint16
 		boardInterfaceName: network.GenerateDummyInterfaceName(board.Name),
 		ipAddressCIDR:      network.AddSubnetMask(board.IP, 24),
 		status:             StatusOK,
-		EventCh:            make(chan string, 16),
+		EventCh:            make(chan Event, 16),
 		Decoder:            decoder.New(board, messageIDs),
 	}
 

@@ -35,11 +35,27 @@ type PlateRuntime struct {
 	Packets      []*PacketRuntime
 	Measurements map[MeasurementID]*MeasurementState // Map of measurement name to its state, for easy access and updates
 
-	// EventCh receives human-readable TCP connection/disconnection events for display in the TUI
-	EventCh chan string
+	// EventCh receives categorized events (TCP connection lifecycle, decoded
+	// orders, ...) for display in the TUI.
+	EventCh chan Event
 
 	// Decoder turns raw TCP payloads into human-readable orders for the TUI
 	Decoder *decoder.Decoder
+}
+
+// EventKind classifies plate events so consumers (TUI, remote) can render
+// them with the appropriate style.
+type EventKind int
+
+const (
+	EventTCP   EventKind = iota // TCP connection lifecycle
+	EventOrder                  // decoded order received from the backend
+)
+
+// Event is a single categorized message produced by a PlateRuntime.
+type Event struct {
+	Kind    EventKind
+	Message string
 }
 
 // status of the plate runtime

@@ -17,7 +17,17 @@ import (
 
 const controlEndMarker = "__CHIMERA_CMD_END__"
 const purple = "\033[35m"
+const blue = "\033[34m"
 const reset = "\033[0m"
+
+// colorize wraps msg with the ANSI color matching kind.
+func colorize(kind plate.EventKind, msg string) string {
+	color := purple
+	if kind == plate.EventOrder {
+		color = blue
+	}
+	return color + msg + reset
+}
 
 type eventBroadcaster struct {
 	mu          sync.Mutex
@@ -77,9 +87,9 @@ func StartControlDaemon(port int, boards plate.PlateGenerators, stop <-chan stru
 
 	broadcaster := newEventBroadcaster()
 	for _, rt := range boards {
-		go func(ch chan string) {
-			for event := range ch {
-				broadcaster.broadcast(event)
+		go func(ch chan plate.Event) {
+			for ev := range ch {
+				broadcaster.broadcast(colorize(ev.Kind, ev.Message))
 			}
 		}(rt.EventCh)
 	}

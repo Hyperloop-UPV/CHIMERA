@@ -251,7 +251,7 @@ func streamRemoteEvents(conn net.Conn) {
 	fmt.Fprintln(conn, "events")
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
-		logPurple(scanner.Text())
+		fmt.Fprintf(os.Stdout, "\r%s\n", scanner.Text())
 	}
 }
 
