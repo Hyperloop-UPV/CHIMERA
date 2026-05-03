@@ -77,6 +77,7 @@ jobs:
           ADJ_DST=/opt/chimera/adj
           CFG_DIR=/etc/chimera
           CFG_DST="$CFG_DIR/config.json"
+          UNIT_DST=/etc/systemd/system/chimera.service
 
           install -m 0755 "$SRC_DIR/chimera-raspi" "$BIN_DST"
 
@@ -88,12 +89,36 @@ jobs:
           sed -e 's|"adj-path": *"[^"]*"|"adj-path": "/opt/chimera/adj"|' \
               "$SRC_DIR/config.json" > "$CFG_DST"
 
+          cat > "$UNIT_DST" <<UNIT
+          [Unit]
+          Description=CHIMERA Hyperloop UPV board emulator (daemon)
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          ExecStart=$BIN_DST -config $CFG_DST -mode daemon
+          Restart=on-failure
+          RestartSec=2
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+          chmod 0644 "$UNIT_DST"
+
+          systemctl daemon-reload
+
           echo "Installed:"
           echo "  binary  -> $BIN_DST"
           echo "  ADJ     -> $ADJ_DST"
           echo "  config  -> $CFG_DST"
+          echo "  unit    -> $UNIT_DST"
           echo
-          echo "Run with:  sudo chimera -config $CFG_DST"
+          echo "The service is installed but NOT enabled. To start it:"
+          echo "  sudo systemctl enable --now chimera"
+          echo
+          echo "Or run manually:  sudo chimera -config $CFG_DST"
           SH
           chmod +x stage/chimera-raspi/install.sh
 
