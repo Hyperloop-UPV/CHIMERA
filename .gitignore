@@ -35,5 +35,6 @@ go.work.sum
 CHIMERA
 
 ./adj/
-chimera-raspi
-chimera-sender
+# Built binaries (root only — keep cmd/chimera-* source dirs tracked)
+/chimera-raspi
+/chimera-sender
