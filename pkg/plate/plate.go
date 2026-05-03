@@ -13,19 +13,23 @@ import (
 // NewPlateRuntime creates a new PlateRuntime for the given board and remote address. It resolves the local address based on the board's IP and creates a UDP connection to the backend. The local address is created as a dummy IP before, so it doesn't need to be actually assigned to an interface. The backend will receive the packets sent by the plate runtime and forward them to the decodification
 func NewPlateRuntime(board adj.Board, remoteAddrUDP *net.UDPAddr, portTCP uint16, period time.Duration, messageIDs map[string]uint16) (*PlateRuntime, error) {
 
-	// Create plate runtime
+	// Loopback IPs (127/8) are already served by `lo`, so creating a dummy
+	// interface for them collides with the existing local route and breaks
+	// outbound UDP. In that case skip the dummy entirely; bind/listen on
+	// 127.x.x.x works out of the box.
 	plate := &PlateRuntime{
-		Board:              board,
-		boardInterfaceName: network.GenerateDummyInterfaceName(board.Name),
-		ipAddressCIDR:      network.AddSubnetMask(board.IP, 24),
-		status:             StatusOK,
-		EventCh:            make(chan Event, 16),
-		Decoder:            decoder.New(board, messageIDs),
+		Board:         board,
+		ipAddressCIDR: network.AddSubnetMask(board.IP, 24),
+		status:        StatusOK,
+		EventCh:       make(chan Event, 16),
+		Decoder:       decoder.New(board, messageIDs),
 	}
 
-	// Create dummy interface
-	if err := plate.createInterface(); err != nil {
-		return nil, fmt.Errorf("failed to create dummy interface for board %s: %v", board.Name, err)
+	if !network.IsLoopback(board.IP) {
+		plate.boardInterfaceName = network.GenerateDummyInterfaceName(board.Name)
+		if err := plate.createInterface(); err != nil {
+			return nil, fmt.Errorf("failed to create dummy interface for board %s: %v", board.Name, err)
+		}
 	}
 
 	// UDP
@@ -54,6 +58,10 @@ func NewPlateRuntime(board adj.Board, remoteAddrUDP *net.UDPAddr, portTCP uint16
 // Due to kernel limitations if you set down the iface while the connection is active, the connection will still be active
 func (plate *PlateRuntime) AbruptlyClose() error {
 
+	if plate.boardInterfaceName == "" {
+		return fmt.Errorf("TCP-abrupt not supported for board %s: no dummy interface (loopback IP)", plate.Board.Name)
+	}
+
 	// Remove the IP address from the interface to forcefully close the connection
 	if err := network.DeleteIPFromInterface(plate.boardInterfaceName, plate.ipAddressCIDR); err != nil {
 		return fmt.Errorf("failed to delete IP from interface: %w", err)
@@ -64,6 +72,10 @@ func (plate *PlateRuntime) AbruptlyClose() error {
 
 // RestoreIP restores the IP address to the dummy interface, allowing the plate runtime to re-establish the connection if needed.
 func (plate *PlateRuntime) RestoreIP() error {
+
+	if plate.boardInterfaceName == "" {
+		return fmt.Errorf("RestoreIP not supported for board %s: no dummy interface (loopback IP)", plate.Board.Name)
+	}
 
 	// Add the IP address back to the interface to restore the connection
 	if err := network.AddIPToInterface(plate.boardInterfaceName, plate.ipAddressCIDR); err != nil {

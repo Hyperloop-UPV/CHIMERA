@@ -2,8 +2,8 @@
     "adj-branch": "software",
     "adj-path": "",
     "network": {
-        "interface": "lo",
-        "ip": "127.0.0.1/24",
+        "interface": "",
+        "ip": "",
         "control-port": 2000
     },
     "initial-period-ms": 100

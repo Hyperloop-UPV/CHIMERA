@@ -5,6 +5,16 @@ import (
 	"strconv"
 )
 
+// IsLoopback reports whether ip belongs to the 127.0.0.0/8 range, which the
+// kernel always serves through `lo` without any extra configuration.
+func IsLoopback(ip string) bool {
+	parsed := net.ParseIP(ip)
+	if parsed == nil {
+		return false
+	}
+	return parsed.IsLoopback()
+}
+
 // IsValidIPv4 checks if the provided string is a valid IPv4 address.
 func IsValidIPv4(ip string) bool {
 
