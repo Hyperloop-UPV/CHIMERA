@@ -15,6 +15,16 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Normalize tag (prepend v if missing)
+        id: tag
+        run: |
+          raw='${{ inputs.version }}'
+          case "$raw" in
+            v*) tag="$raw" ;;
+            *)  tag="v$raw" ;;
+          esac
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
       - name: Checkout CHIMERA
         uses: actions/checkout@v4
 
@@ -36,7 +46,7 @@ jobs:
           go build -trimpath -ldflags="-s -w" \
             -o stage/chimera-sender/chimera-sender ./cmd/chimera-sender
           cp config-sender.json stage/chimera-sender/config-sender.json
-          tar -C stage -czf dist/chimera-sender.tar.gz chimera-sender
+          tar -C stage -czf dist/chimera-sender-${{ steps.tag.outputs.tag }}.tar.gz chimera-sender
 
       # ---------------------------------------------------------------
       # chimera-raspi: linux/arm64 binary + bundled ADJ + installer
@@ -125,7 +135,7 @@ jobs:
       - name: Pack chimera-raspi installer
         run: |
           mkdir -p dist
-          tar -C stage -czf dist/chimera-raspi-installer.tar.gz chimera-raspi
+          tar -C stage -czf dist/chimera-raspi-installer-${{ steps.tag.outputs.tag }}.tar.gz chimera-raspi
 
       # ---------------------------------------------------------------
       # Publish GitHub Release
@@ -133,10 +143,10 @@ jobs:
       - name: Create / update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version }}
-          name: CHIMERA ${{ inputs.version }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: CHIMERA ${{ steps.tag.outputs.tag }}
           draft: true
           prerelease: true
           files: |
-            dist/chimera-sender.tar.gz
-            dist/chimera-raspi-installer.tar.gz
+            dist/chimera-sender-${{ steps.tag.outputs.tag }}.tar.gz
+            dist/chimera-raspi-installer-${{ steps.tag.outputs.tag }}.tar.gz
