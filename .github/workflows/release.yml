@@ -1,0 +1,115 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CHIMERA
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      # ---------------------------------------------------------------
+      # chimera-sender: single linux/amd64 executable
+      # ---------------------------------------------------------------
+      - name: Build chimera-sender (linux/amd64)
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: '0'
+        run: |
+          mkdir -p dist
+          go build -trimpath -ldflags="-s -w" \
+            -o dist/chimera-sender ./cmd/chimera-sender
+
+      # ---------------------------------------------------------------
+      # chimera-raspi: linux/arm64 binary + bundled ADJ + installer
+      # ---------------------------------------------------------------
+      - name: Build chimera-raspi (linux/arm64)
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          CGO_ENABLED: '0'
+        run: |
+          mkdir -p stage/chimera-raspi
+          go build -trimpath -ldflags="-s -w" \
+            -o stage/chimera-raspi/chimera-raspi ./cmd/chimera-raspi
+
+      - name: Bundle ADJ (branch CHIMERA, no .git)
+        run: |
+          git clone --depth 1 --branch CHIMERA \
+            https://github.com/Hyperloop-UPV/adj.git stage/chimera-raspi/adj
+          rm -rf stage/chimera-raspi/adj/.git
+
+      - name: Stage config and installer
+        run: |
+          cp config.json stage/chimera-raspi/config.json
+          cat > stage/chimera-raspi/install.sh <<'SH'
+          #!/usr/bin/env bash
+          # Offline installer for chimera-raspi.
+          # Copies the binary, the bundled ADJ tree and a config that points to it.
+          set -euo pipefail
+
+          if [[ $EUID -ne 0 ]]; then
+            echo "install.sh must be run as root (sudo)." >&2
+            exit 1
+          fi
+
+          SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+          BIN_DST=/usr/local/bin/chimera
+          ADJ_DST=/opt/chimera/adj
+          CFG_DIR=/etc/chimera
+          CFG_DST="$CFG_DIR/config.json"
+
+          install -m 0755 "$SRC_DIR/chimera-raspi" "$BIN_DST"
+
+          mkdir -p "$ADJ_DST"
+          cp -a "$SRC_DIR/adj/." "$ADJ_DST/"
+
+          mkdir -p "$CFG_DIR"
+          # Force adj-path to the bundled offline copy.
+          sed -e 's|"adj-path": *"[^"]*"|"adj-path": "/opt/chimera/adj"|' \
+              "$SRC_DIR/config.json" > "$CFG_DST"
+
+          echo "Installed:"
+          echo "  binary  -> $BIN_DST"
+          echo "  ADJ     -> $ADJ_DST"
+          echo "  config  -> $CFG_DST"
+          echo
+          echo "Run with:  sudo chimera -config $CFG_DST"
+          SH
+          chmod +x stage/chimera-raspi/install.sh
+
+      - name: Pack chimera-raspi installer
+        run: |
+          mkdir -p dist
+          tar -C stage -czf dist/chimera-raspi-installer.tar.gz chimera-raspi
+
+      # ---------------------------------------------------------------
+      # Publish GitHub Release
+      # ---------------------------------------------------------------
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/chimera-sender
+            dist/chimera-raspi-installer.tar.gz
