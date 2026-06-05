@@ -127,6 +127,13 @@ func (plate *PlateRuntime) GetStatus() PlateStatus {
 	return plate.status
 }
 
+// SetPeriod sets the period of all the packages plate
+
+func (plate *PlateRuntime) SetPeriod(period time.Duration) {
+
+	plate.applyADJBoardConfig(period)
+}
+
 /******************
 * Private methods *
 ******************/
