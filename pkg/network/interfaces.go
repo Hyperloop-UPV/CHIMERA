@@ -55,8 +55,8 @@ func SetUpExternalInterface(iface string, ip string) error {
 		return err
 	}
 
-	// Add the new IP address to the interface
-	if err := utils.RunCommandSilent("ip", "addr", "add", ip, "dev", iface); err != nil {
+	// Ensure the interface has the requested IP address.
+	if err := utils.RunCommandSilent("ip", "addr", "replace", ip, "dev", iface); err != nil {
 		return err
 	}
 
